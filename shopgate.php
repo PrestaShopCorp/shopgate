@@ -61,12 +61,12 @@ class ShopGate extends PaymentModule
 	public function __construct()
 	{
 		$this->name = 'shopgate';
-		if (version_compare(_PS_VERSION_, '1.5.0.0', '<'))
-			$this->tab = 'market_place';
-		else
+		if (version_compare(_PS_VERSION_, '1.5', '>='))
 			$this->tab = 'mobile';
+		else
+			$this->tab = 'market_place';
 
-		$this->version = '2.7.1';
+		$this->version = '2.7.2';
 		$this->author = 'Shopgate';
 		$this->module_key = '';
 
