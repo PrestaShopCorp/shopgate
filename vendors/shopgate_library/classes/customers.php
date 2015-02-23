@@ -1,25 +1,25 @@
 <?php
-/*
-* Shopgate GmbH
-*
-* URHEBERRECHTSHINWEIS
-*
-* Dieses Plugin ist urheberrechtlich geschützt. Es darf ausschließlich von Kunden der Shopgate GmbH
-* zum Zwecke der eigenen Kommunikation zwischen dem IT-System des Kunden mit dem IT-System der
-* Shopgate GmbH über www.shopgate.com verwendet werden. Eine darüber hinausgehende Vervielfältigung, Verbreitung,
-* öffentliche Zugänglichmachung, Bearbeitung oder Weitergabe an Dritte ist nur mit unserer vorherigen
-* schriftlichen Zustimmung zulässig. Die Regelungen der §§ 69 d Abs. 2, 3 und 69 e UrhG bleiben hiervon unberührt.
-*
-* COPYRIGHT NOTICE
-*
-* This plugin is the subject of copyright protection. It is only for the use of Shopgate GmbH customers,
-* for the purpose of facilitating communication between the IT system of the customer and the IT system
-* of Shopgate GmbH via www.shopgate.com. Any reproduction, dissemination, public propagation, processing or
-* transfer to third parties is only permitted where we previously consented thereto in writing. The provisions
-* of paragraph 69 d, sub-paragraphs 2, 3 and paragraph 69, sub-paragraph e of the German Copyright Act shall remain unaffected.
-*
-*  @author Shopgate GmbH <interfaces@shopgate.com>
-*/
+/**
+ * Shopgate GmbH
+ *
+ * URHEBERRECHTSHINWEIS
+ *
+ * Dieses Plugin ist urheberrechtlich geschützt. Es darf ausschließlich von Kunden der Shopgate GmbH
+ * zum Zwecke der eigenen Kommunikation zwischen dem IT-System des Kunden mit dem IT-System der
+ * Shopgate GmbH über www.shopgate.com verwendet werden. Eine darüber hinausgehende Vervielfältigung, Verbreitung,
+ * öffentliche Zugänglichmachung, Bearbeitung oder Weitergabe an Dritte ist nur mit unserer vorherigen
+ * schriftlichen Zustimmung zulässig. Die Regelungen der §§ 69 d Abs. 2, 3 und 69 e UrhG bleiben hiervon unberührt.
+ *
+ * COPYRIGHT NOTICE
+ *
+ * This plugin is the subject of copyright protection. It is only for the use of Shopgate GmbH customers,
+ * for the purpose of facilitating communication between the IT system of the customer and the IT system
+ * of Shopgate GmbH via www.shopgate.com. Any reproduction, dissemination, public propagation, processing or
+ * transfer to third parties is only permitted where we previously consented thereto in writing. The provisions
+ * of paragraph 69 d, sub-paragraphs 2, 3 and paragraph 69, sub-paragraph e of the German Copyright Act shall remain unaffected.
+ *
+ * @author Shopgate GmbH <interfaces@shopgate.com>
+ */
 
 class ShopgateCustomer extends ShopgateContainer {
 	const MALE = "m";
@@ -27,7 +27,8 @@ class ShopgateCustomer extends ShopgateContainer {
 	
 	protected $customer_id;
 	protected $customer_number;
-
+	protected $customer_token;
+	
 	protected $customer_groups;
 
 	protected $tax_class_key;
@@ -49,12 +50,12 @@ class ShopgateCustomer extends ShopgateContainer {
 	
 	protected $addresses;
 	
-	/** 
+	/**
 	 * @deprecated
 	 */
 	protected $customer_group;
 	
-	/** 
+	/**
 	 * @deprecated
 	 */
 	protected $customer_group_id;
@@ -89,6 +90,13 @@ class ShopgateCustomer extends ShopgateContainer {
 	 */
 	public function setCustomerGroup($value) {
 		$this->customer_group = $value;
+	}
+	
+	/**
+	 * @param string $value
+	 */
+	public function setCustomerToken($value) {
+		$this->customer_token = $value;
 	}
 	
 	/**
@@ -263,6 +271,13 @@ class ShopgateCustomer extends ShopgateContainer {
 		return $this->customer_group;
 	}
 
+	/**
+	 * @return string
+	 */
+	public function getCustomerToken() {
+		return $this->customer_token;
+	}
+	
 	/**
 	 * @return string
 	 * @deprecated
