@@ -15,15 +15,11 @@
 * @copyright  Shopgate GmbH
 * @license   http://opensource.org/licenses/AFL-3.0 Academic Free License ("AFL"), in the version 3.0
 *}
-
-<link rel="stylesheet" type="text/css" href="{$mod_dir|escape:html:'UTF-8'}views/css/admin-order.css">
-
-<br />
 <form action="" method="post">
 <fieldset class="shopgate-order-info">
 	<legend><img src="{$sModDir|escape:'htmlall':'UTF-8'}views/img/logo.png">{l s='Shopgate information' mod='shopgate'}</legend>
 	
-	{if $shopgate_error}<span style="color:red; font-weight:bold;">{$shopgate_error|escape:'htmlall':'UTF-8'}</span>{/if}
+	{if $shopgate_error}<span class="error">{$shopgate_error|escape:'htmlall':'UTF-8'}</span>{/if}
 	
 	{if $sShopNumber}
 		<label>{l s='Shop number' mod='shopgate'}:</label>
@@ -66,7 +62,7 @@
 			{/foreach}
 		{/if}
 		
-		<h4 style="border-bottom:1px solid #E0D0B1">{l s='Payment information' mod='shopgate'}</h4>
+		<h4>{l s='Payment information' mod='shopgate'}</h4>
 		{if count($sOrderPaymentInfos)}
 			{foreach key="key" from=$sOrderPaymentInfos item="paymentInfos"}
                 <label>{if isset($paymentInfoStrings[$key])}{$paymentInfoStrings[$key]|escape:'htmlall':'UTF-8'}{else}{$key|escape:'htmlall':'UTF-8'}{/if}:</label>
@@ -76,7 +72,7 @@
 			{/foreach}
 		{/if}
 		
-		<h4 style="border-bottom:1px solid #E0D0B1">{l s='Delivery notes' mod='shopgate'}</h4>
+		<h4>{l s='Delivery notes' mod='shopgate'}</h4>
 		
 		{if count($sOrderDeliveryNotes)}
 			<table class="table" cellspacing="0" cellpadding="0" style="width:400px">
@@ -98,7 +94,7 @@
 		{/if}
 			
 	
-		<h4 style="border-bottom:1px solid #E0D0B1">{l s='Shipping settings' mod='shopgate'}</h4>
+		<h4>{l s='Shipping settings' mod='shopgate'}</h4>
 	
 		<label>{l s='Shipping service' mod='shopgate'}:</label>
 		<div class="margin-form">
@@ -112,7 +108,7 @@
 			<input type="submit" class="button" name="updateShopgateOrder" value="{l s='Save' mod='shopgate'}">
 		</div>
 
-		<h4 style="border-bottom:1px solid #E0D0B1">{l s='Additional informations' mod='shopgate'}</h4>
+		<h4>{l s='Additional informations' mod='shopgate'}</h4>
 
 		{if count($sOrder->getCustomFields())}
 			<div class="admin-order additional-box">
@@ -143,10 +139,9 @@
 				{/foreach}
 			</div>
 		{/if}
-
 	
 	{elseif !$shopgate_error}
-		<span style="color:red; font-weight:bold;">{l s='Order not found in shopgate' mod='shopgate'}</span>
+		<span class="error">{l s='Order not found in shopgate' mod='shopgate'}</span>
 	{/if}
 </fieldset>
 </form>

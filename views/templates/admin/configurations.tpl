@@ -15,10 +15,6 @@
 * @copyright  Shopgate GmbH
 * @license   http://opensource.org/licenses/AFL-3.0 Academic Free License ("AFL"), in the version 3.0
 *}
-
-<link rel='stylesheet' type='text/css' href='//fonts.googleapis.com/css?family=Open+Sans:400,600&subset=latin,latin-ext'/>
-<link rel="stylesheet" type="text/css" href="{$mod_dir|escape:html:'UTF-8'}views/css/configurations.css">
-
 <div id="shopgateTeaser">
 
     <div id="shopgateTeaserHeader">
@@ -108,7 +104,7 @@
     {/literal}
 </script>
 
-<form method="post" action="">
+<form method="post" action="" class="shopgate-configuration">
     <fieldset>
         <legend><img title="" alt="" src="{$mod_dir|escape:html:'UTF-8'}views/img/logo.png">{l s='Configuration' mod='shopgate'}</legend>
 
@@ -117,8 +113,7 @@
         <label>{l s='API URL' mod='shopgate'}</label>
 
         <div class="margin-form">
-            <input type="text" value="{$api_url|escape:'htmlall':'UTF-8'}" readonly="readonly" size="60" onclick="$(this).select();"
-                   style="background-color: #EFEFEF;"/>
+            <input type="text" class="api-url" value="{$api_url|escape:'htmlall':'UTF-8'}" readonly="readonly" size="60" onclick="$(this).select();"/>
 
             <p>{l s='Use this URL in shopgate merchant settings' mod='shopgate'}</p>
         </div>
@@ -180,7 +175,7 @@
             <label class="t"><input type="radio" value="0"
                                     name="settings[SHOPGATE_SUBSCRIBE_NEWSLETTER]"{if !$settings.SHOPGATE_SUBSCRIBE_NEWSLETTER} checked="checked"{/if}/>
                 <img title="{l s='Disabled' mod='shopgate'}" alt="{l s='Disabled' mod='shopgate'}" src="../img/admin/disabled.gif"></label>
-        </div><p style="clear: both;">&nbsp;</p>
+        </div><p class="clear">&nbsp;</p>
 
         <h2>{l s='Server' mod='shopgate'}</h2>
 

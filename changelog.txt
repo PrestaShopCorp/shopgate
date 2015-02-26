@@ -1,6 +1,9 @@
 '''Deutsch'''
 
 
+'''Version 2.9.26'''
+* added base price for child products
+
 '''Version 2.9.25'''
 * fix version number
 
@@ -410,6 +413,9 @@
 
 
 '''English'''
+
+'''Version 2.9.26'''
+* added base price for child products
 
 '''Version 2.9.25'''
 * fix version number

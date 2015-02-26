@@ -11,3 +11,12 @@
     border-bottom:1px solid #E0D0B1;
     margin-left: 30px;
 }
+
+.shopgate-order-info h4 {
+    border-bottom:1px solid #E0D0B1
+}
+
+.shopgate-order-info .error {
+    color:red;
+    font-weight:bold
+}

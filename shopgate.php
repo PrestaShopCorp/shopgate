@@ -23,7 +23,7 @@ if (!defined('_PS_VERSION_'))
 	//Translations
 	$this->l('Shopgate order ID:');
 */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.25');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.26');
 define('SHOPGATE_DIR', _PS_MODULE_DIR_.'shopgate/');
 
 require_once(SHOPGATE_DIR.'vendors/shopgate_library/shopgate.php');
@@ -164,7 +164,7 @@ class ShopGate extends PaymentModule
 		}
 
 		$this->log('INSTALLATION - registering hookpoints', ShopgateLogger::LOGTYPE_DEBUG);
-		$hooks = array ('header', 'adminOrder', 'updateOrderStatus');
+		$hooks = array ('header', 'adminOrder', 'updateOrderStatus', 'backOfficeHeader');
 		foreach ($hooks as $hook)
 		{
 			$this->log('INSTALLATION - registering hookpoint "'.$hook.'"', ShopgateLogger::LOGTYPE_DEBUG);
@@ -277,9 +277,11 @@ class ShopGate extends PaymentModule
 			}
 		}
 
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
 		$shopgateConfig = new ShopgateConfigPresta(
-			is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
-				unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+			is_array($storedConfig) ?
+				$storedConfig :
 				array ()
 
 		);
@@ -450,9 +452,11 @@ class ShopGate extends PaymentModule
 
 	public function uninstall()
 	{
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
 		$shopgateConfig = new ShopgateConfigPresta(
-			is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
-				unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+			is_array($storedConfig) ?
+				$storedConfig :
 				array ()
 
 		);
@@ -566,9 +570,11 @@ class ShopGate extends PaymentModule
 		if (version_compare(_PS_VERSION_, '1.4.1.0', '>=') && Configuration::get('PS_HOMEPAGE_PHP_SELF') !== false)
 			$indexFile = Configuration::get('PS_HOMEPAGE_PHP_SELF');
 
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
 		$shopgateConfig = new ShopgateConfigPresta(
-			is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
-				unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+			is_array($storedConfig) ?
+				$storedConfig :
 				array ()
 
 		);
@@ -585,7 +591,7 @@ class ShopGate extends PaymentModule
 			$productItem        = new Product($id_product);
 			$defaultAttributeId = $productItem->getDefaultAttribute($id_product);
 			$shopgateJsHeader   = $shopgateRedirector->buildScriptItem(
-				sprintf('%s%s_%s',
+				sprintf('%s%d_%d',
 					PSShopgatePlugin::PREFIX,
 					$id_product,
 					$defaultAttributeId ? $defaultAttributeId : 0
@@ -613,15 +619,40 @@ class ShopGate extends PaymentModule
 		return $this->doMobileRedirect();
 	}
 
+	public function hookBackOfficeHeader()
+	{
+		$header = '';
+
+		if(Tools::getValue('controller') == 'AdminOrders')
+		{
+			if (version_compare(_PS_VERSION_, '1.5', '>') == true)
+				$this->context->controller->addCSS($this->_path.'views/css/admin-order.css');
+			else
+				$header .= '<link rel="stylesheet" href="'.$this->_path.'views/css/admin-order.css" type="text/css" />';
+		}
+
+		if (strcmp(Tools::getValue('configure'), $this->name) === 0)
+		{
+			if (version_compare(_PS_VERSION_, '1.5', '>') == true)
+				$this->context->controller->addCSS($this->_path.'views/css/configurations.css');
+			else
+				$header .= '<link rel="stylesheet" href="'.$this->_path.'views/css/configurations.css" type="text/css" />';
+		}
+
+		return $header;
+	}
+
 	public function hookUpdateOrderStatus($params)
 	{
 		$id_order      = $params['id_order'];
 		$orderState    = $params['newOrderStatus'];
 		$shopgateOrder = PSShopgateOrder::instanceByOrderId($id_order);
 
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
 		$shopgateConfig = new ShopgateConfigPresta(
-			is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
-				unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+			is_array($storedConfig) ?
+				$storedConfig :
 				array ()
 
 		);
@@ -674,9 +705,11 @@ class ShopGate extends PaymentModule
 			{
 				try
 				{
+					$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
 					$shopgateConfig = new ShopgateConfigPresta(
-						is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
-							unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+						is_array($storedConfig) ?
+							$storedConfig :
 							array ()
 
 					);
@@ -789,9 +822,12 @@ class ShopGate extends PaymentModule
 		include_once dirname(__FILE__).'/backward_compatibility/backward.php';
 
 		$output         = '';
+
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
 		$shopgateConfig = new ShopgateConfigPresta(
-			is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
-				unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+			is_array($storedConfig) ?
+				$storedConfig :
 				array ()
 
 		);
@@ -872,9 +908,12 @@ class ShopGate extends PaymentModule
 		/**
 		 * read config from db
 		 */
+
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
 		$shopgateConfig = new ShopgateConfigPresta(
-			is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
-				unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+			is_array($storedConfig) ?
+				$storedConfig :
 				array ()
 
 		);

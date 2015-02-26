@@ -109,3 +109,11 @@
     font-size: 13px;
     font-weight: 600;
 }
+
+.shopgate-configuration input.api-url {
+    background-color: #EFEFEF
+}
+
+.shopgate-configuration .clear {
+    clear: both;
+}

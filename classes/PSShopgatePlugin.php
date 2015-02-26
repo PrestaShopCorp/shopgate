@@ -617,79 +617,68 @@ class PSShopgatePlugin extends ShopgatePlugin
 		$this->log('$order->getIsShippingBlocked() -> '.$order->getIsShippingBlocked());
 		$this->log('$order->getIsPaid() -> '.$order->getIsPaid());
 
-
-		switch ($newOrder)
+		if($newOrder)
 		{
+			$this->log('getNewOrderStates (new order)', ShopgateLogger::LOGTYPE_DEBUG);
+			if ($order->getIsShippingBlocked())
+			{
+				/**
+				 * blocked by shopgate
+				 */
+				$this->log(' - order is blocked', ShopgateLogger::LOGTYPE_DEBUG);
+				$this->log(' -- '.$order->getPaymentMethod().' #'.$mappedStates['BLOCKED'], ShopgateLogger::LOGTYPE_DEBUG);
+				$idOrderStates[] =$this->getOrderStateId($mappedStates['BLOCKED']);
 
-			/**
-			 * new order
-			 */
-			case true :
-				$this->log('getNewOrderStates (new order)', ShopgateLogger::LOGTYPE_DEBUG);
-				if ($order->getIsShippingBlocked())
+			}
+			else
+			{
+				/**
+				 * not blocked
+				 */
+				if ($order->getIsPaid())
 				{
-					/**
-					 * blocked by shopgate
-					 */
-					$this->log(' - order is blocked', ShopgateLogger::LOGTYPE_DEBUG);
-					$this->log(' -- '.$order->getPaymentMethod().' #'.$mappedStates['BLOCKED'], ShopgateLogger::LOGTYPE_DEBUG);
-					array_push($idOrderStates, $this->getOrderStateId($mappedStates['BLOCKED']));
-
+					$this->log(' - order is not blocked and paid', ShopgateLogger::LOGTYPE_DEBUG);
+					$this->log(' -- '.$order->getPaymentMethod().' #'.$mappedStates['NOT_BLOCKED_PAID'], ShopgateLogger::LOGTYPE_DEBUG);
+					$idOrderStates[] = $this->getOrderStateId($mappedStates['NOT_BLOCKED_PAID']);
 				}
 				else
 				{
-					/**
-					 * not blocked
-					 */
-					if ($order->getIsPaid())
-					{
-						$this->log(' - order is not blocked and paid', ShopgateLogger::LOGTYPE_DEBUG);
-						$this->log(' -- '.$order->getPaymentMethod().' #'.$mappedStates['NOT_BLOCKED_PAID'], ShopgateLogger::LOGTYPE_DEBUG);
-						array_push($idOrderStates, $this->getOrderStateId($mappedStates['NOT_BLOCKED_PAID']));
-					}
-					else
-					{
-						$this->log(' - order is not blocked and not paid', ShopgateLogger::LOGTYPE_DEBUG);
-						$this->log(' -- '.$order->getPaymentMethod().' #'.$mappedStates['NOT_BLOCKED_NOT_PAID'], ShopgateLogger::LOGTYPE_DEBUG);
-						array_push($idOrderStates, $this->getOrderStateId($mappedStates['NOT_BLOCKED_NOT_PAID']));
-					}
+					$this->log(' - order is not blocked and not paid', ShopgateLogger::LOGTYPE_DEBUG);
+					$this->log(' -- '.$order->getPaymentMethod().' #'.$mappedStates['NOT_BLOCKED_NOT_PAID'], ShopgateLogger::LOGTYPE_DEBUG);
+					$idOrderStates[] = $this->getOrderStateId($mappedStates['NOT_BLOCKED_NOT_PAID']);
 				}
-				break;
+			}
+		}
+		else
+		{
+			$this->log('getNewOrderStates (update order)', ShopgateLogger::LOGTYPE_DEBUG);
+			/**
+			 * payment is updated
+			 */
+			if ($order->getUpdatePayment() && $order->getIsPaid() && !$order->getIsShippingBlocked())
+			{
+				$this->log(' - update_payment = 1; is_paid = 1; is_shipping_blocked = false => order_state_id #'.$mappedStates['NOT_BLOCKED_PAID'], ShopgateLogger::LOGTYPE_DEBUG);
+				$idOrderStates[] = $this->getOrderStateId($mappedStates['NOT_BLOCKED_PAID']);
+			}
 
 			/**
-			 * update order
+			 * update shipping
 			 */
-			case false :
-
-				$this->log('getNewOrderStates (update order)', ShopgateLogger::LOGTYPE_DEBUG);
-				/**
-				 * payment is updated
-				 */
-				if ($order->getUpdatePayment() && $order->getIsPaid() && !$order->getIsShippingBlocked())
+			if ($order->getUpdateShipping())
+			{
+				switch ($order->getIsShippingBlocked())
 				{
-					$this->log(' - update_payment = 1; is_paid = 1; is_shipping_blocked = false => order_state_id #'.$mappedStates['NOT_BLOCKED_PAID'], ShopgateLogger::LOGTYPE_DEBUG);
-					array_push($idOrderStates, $this->getOrderStateId($mappedStates['NOT_BLOCKED_PAID']));
+					case false :
+						$this->log(' - update_shipping = 1; is_shipping_blocked = false => order_state_id #'.$mappedStates['NOT_BLOCKED_SHIPPED'], ShopgateLogger::LOGTYPE_DEBUG);
+						$idOrderStates[] = $this->getOrderStateId($mappedStates['NOT_BLOCKED_SHIPPED']);
+						break;
+					case true :
+						$this->log(' - update_shipping = 1; is_shipping_blocked = true => order_state_id #'.$mappedStates['BLOCKED_SHIPPED'], ShopgateLogger::LOGTYPE_DEBUG);
+						$idOrderStates[] = $this->getOrderStateId($mappedStates['BLOCKED_SHIPPED']);
+						break;
 				}
-
-				/**
-				 * update shipping
-				 */
-				if ($order->getUpdateShipping())
-				{
-					switch ($order->getIsShippingBlocked())
-					{
-						case false :
-							$this->log(' - update_shipping = 1; is_shipping_blocked = false => order_state_id #'.$mappedStates['NOT_BLOCKED_SHIPPED'], ShopgateLogger::LOGTYPE_DEBUG);
-							array_push($idOrderStates, $this->getOrderStateId($mappedStates['NOT_BLOCKED_SHIPPED']));
-							break;
-						case true :
-							$this->log(' - update_shipping = 1; is_shipping_blocked = true => order_state_id #'.$mappedStates['BLOCKED_SHIPPED'], ShopgateLogger::LOGTYPE_DEBUG);
-							array_push($idOrderStates, $this->getOrderStateId($mappedStates['BLOCKED_SHIPPED']));
-							break;
-					}
-				}
-				break;
-		};
+			}
+		}
 
 		return $idOrderStates;
 	}
@@ -915,7 +904,7 @@ class PSShopgatePlugin extends ShopgatePlugin
 			if ((bool)$settings['SHOPGATE_OUT_OF_STOCK_CHECK'] && $wantedQty > $stockQty)
 				throw new ShopgateLibraryException(ShopgateLibraryException::PLUGIN_DATABASE_ERROR, 'Out of stock', true);
 
-			array_push($products, $p);
+			$products[] = $p;
 		}
 
 		$this->log('end insertOrderItems()', ShopgateLogger::LOGTYPE_DEBUG);
@@ -1078,7 +1067,7 @@ class PSShopgatePlugin extends ShopgatePlugin
 		return Db::getInstance()->getValue('
 				SELECT position
 				FROM `'._DB_PREFIX_.'category_product`
-				WHERE `id_product` = '.$product_id.' AND `id_category` = '.$category_id
+				WHERE `id_product` = ' . (int) $product_id . ' AND `id_category` = ' . (int) $category_id
 		);
 	}
 
@@ -2703,8 +2692,8 @@ class PSShopgatePlugin extends ShopgatePlugin
 				sprintf(
 					'SELECT * FROM %sproduct_comment WHERE validate = 1%s%s',
 					_DB_PREFIX_,
-					is_int($limit) ? ' LIMIT '.$limit : '',
-					is_int($offset) ? ' OFFSET '.$offset : ''
+					is_int($limit) ? ' LIMIT '.(int)$limit : '',
+					is_int($offset) ? ' OFFSET '.(int)$offset : ''
 				)
 			);
 		}

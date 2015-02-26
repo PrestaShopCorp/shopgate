@@ -296,7 +296,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 			$imageItem->setSortOrder($imageItemModel->position);
 			$imageItem->setIsCover($imageItemModel->cover);
 
-			array_push($result, $imageItem);
+			$result[] = $imageItem;
 		}
 
 		parent::setImages($result);
@@ -344,7 +344,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 		return Db::getInstance()->getValue('
 				SELECT position
 				FROM `'._DB_PREFIX_.'category_product`
-				WHERE `id_product` = '.$product_id.' AND `id_category` = '.$category_id);
+				WHERE `id_product` = '.(int)$product_id.' AND `id_category` = '.(int)$category_id);
 	}
 
 	/**
@@ -696,6 +696,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 			foreach ($combinations as $id => $c)
 			{
 				$combination = current($c);
+				$combinationItem = new Combination($id);
 
 				/**
 				 * global info
@@ -734,6 +735,41 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 					 * setMinimumOrderAmount
 					 */
 					$priceItem->setMinimumOrderAmount($combination['minimal_quantity']);
+				}
+
+				/**
+				 * base price
+				 */
+				if ($this->item->unit_price != 0) {
+
+					if(isset($combination['unit_price_impact']) && $combination['unit_price_impact'] != 0) {
+
+						$productPrice = $this->getItemPrice($this->getUid(), $id, true);
+						$basePrice = ($productPrice / $this->item->unit_price_ratio) + ($combination['unit_price_impact']);
+
+						if(!$this->getUseTax()) {
+							$basePrice /= (($this->getTaxPercent() + 100) / 100);
+						}
+
+						$basePrice = number_format($basePrice, 2);
+
+						if ($this->item->unity != '')
+						{
+							/**
+							 * set price with unity
+							 */
+							$priceItem->setBasePrice(sprintf('%s %s / %s', $basePrice, $this->getContext()->currency->iso_code, $this->item->unity));
+						}
+						else
+						{
+							/**
+							 *  set price without unity
+							 */
+							$priceItem->setBasePrice(sprintf('%s %s', $basePrice, $this->getContext()->currency->iso_code));
+						}
+
+
+					}
 				}
 
 				$priceItem->setPrice($this->getItemPrice($this->getUid(), $id, $this->getUseTax()));
@@ -886,7 +922,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 			FROM %scustomization_field as cf
 			INNER JOIN %scustomization_field_lang as cl
 			  ON cf.id_customization_field = cl.id_customization_field
-			WHERE cf.id_product = %s AND cl.id_lang = %s;', _DB_PREFIX_, _DB_PREFIX_, $this->item->id, $this->getContext()->language->id);
+			WHERE cf.id_product = %d AND cl.id_lang = %d;', _DB_PREFIX_, _DB_PREFIX_, $this->item->id, $this->getContext()->language->id);
 
 		return Db::getInstance()->ExecuteS($select);
 	}
@@ -900,7 +936,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 	 */
 	protected function getImageInfo($imageId)
 	{
-		$select = sprintf('SELECT * from %simage_lang WHERE id_image = %s AND id_lang = %s', _DB_PREFIX_, $imageId, $this->getContext()->language->id);
+		$select = sprintf('SELECT * from %simage_lang WHERE id_image = %d AND id_lang = %d', _DB_PREFIX_, $imageId, $this->getContext()->language->id);
 
 		return Db::getInstance()->ExecuteS($select);
 	}
@@ -917,7 +953,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 		if ($this->checkTable(sprintf('%sspecific_price', _DB_PREFIX_)))
 		{
 			$now    = date('Y-m-d H:i:s');
-			$select = sprintf('SELECT * from %sspecific_price WHERE id_product = %s AND %s AND %s AND (id_shop = %s OR id_shop = 0)', _DB_PREFIX_, $this->item->id, '(`from` = "0000-00-00 00:00:00" OR "'.$now.'" >= `from`)', '(`to` = "0000-00-00 00:00:00" OR "'.$now.'" <= `to`)', $this->context->shop->id);
+			$select = sprintf('SELECT * from %sspecific_price WHERE id_product = %d AND %s AND %s AND (id_shop = %d OR id_shop = 0)', _DB_PREFIX_, $this->item->id, '(`from` = "0000-00-00 00:00:00" OR "'.$now.'" >= `from`)', '(`to` = "0000-00-00 00:00:00" OR "'.$now.'" <= `to`)', $this->context->shop->id);
 
 			return Db::getInstance()->ExecuteS($select);
 		}
@@ -966,9 +1002,9 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 						ON cp.id_category = cl.id_category
 						LEFT JOIN %scategory_shop AS cs
 						ON cs.id_category = cp.id_category
-						WHERE cp.id_product = %s AND
-						cl.id_lang = %s AND
-						cs.id_shop = %s
+						WHERE cp.id_product = %d AND
+						cl.id_lang = %d AND
+						cs.id_shop = %d
 						group by cp.id_category
 						', _DB_PREFIX_, _DB_PREFIX_, _DB_PREFIX_, $this->item->id, $this->getContext()->language->id, $this->getContext()->shop->id);
 		}
@@ -981,8 +1017,8 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 						FROM %scategory_product AS cp
 						LEFT JOIN %scategory_lang AS cl
 						ON cp.id_category = cl.id_category
-						WHERE cp.id_product = %s AND
-						cl.id_lang = %s
+						WHERE cp.id_product = %d AND
+						cl.id_lang = %d
 						group by cp.id_category
 						', _DB_PREFIX_, _DB_PREFIX_, $this->item->id, $this->getContext()->language->id);
 		}
