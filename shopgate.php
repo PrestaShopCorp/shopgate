@@ -23,7 +23,7 @@ if (!defined('_PS_VERSION_'))
 	//Translations
 	$this->l('Shopgate order ID:');
 */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.26');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.27');
 define('SHOPGATE_DIR', _PS_MODULE_DIR_.'shopgate/');
 
 require_once(SHOPGATE_DIR.'vendors/shopgate_library/shopgate.php');
@@ -108,6 +108,8 @@ class ShopGate extends PaymentModule
 			'Mobile Payment'   => $this->l('Mobile Payment'),
 			'Shopgate'         => $this->l('Shopgate')
 		);
+
+		$this->ps_versions_compliancy = array('min' => '1.4.0.2', 'max' => _PS_VERSION_);
 	}
 
 	private function setCarrier(Carrier $carrier)
@@ -591,8 +593,7 @@ class ShopGate extends PaymentModule
 			$productItem        = new Product($id_product);
 			$defaultAttributeId = $productItem->getDefaultAttribute($id_product);
 			$shopgateJsHeader   = $shopgateRedirector->buildScriptItem(
-				sprintf('%s%d_%d',
-					PSShopgatePlugin::PREFIX,
+				sprintf('%d_%d',
 					$id_product,
 					$defaultAttributeId ? $defaultAttributeId : 0
 				)
@@ -853,6 +854,9 @@ class ShopGate extends PaymentModule
 		{
 			$configKey            = 'SHOPGATE_CARRIER_MAPPING_'.$carrier['id_carrier'];
 			$carriers[$configKey] = $carrier;
+			$settingKeys[]        = $configKey;
+
+			$configKey            = 'USE_MOBILE_CARRIER_'.$carrier['id_carrier'];
 			$settingKeys[]        = $configKey;
 		}
 

@@ -51,6 +51,11 @@ class PSShopgateCheckCart
 	 */
 	const DEFAULT_ADDRESS_ALIAS = 'shopgate_check_cart';
 
+	/**
+	 * default checkbox disables
+	 */
+	const DEFAULT_CHECKBOX_DISABLED = 'off';
+
 	/** @var \Context Context */
 	protected $_context;
 
@@ -343,8 +348,10 @@ class PSShopgateCheckCart
 		{
 			/** @var CarrierCore $carrierModel */
 			$carrierModel = new Carrier();
-			foreach ($carrierModel->getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), null, $this->_context->cart) as $carrier)
-				array_push($this->_resultCarriers, $this->_createResultCarrier($carrier));
+			foreach ($carrierModel->getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), null, $this->_context->cart) as $carrier) {
+				if(Configuration::get('USE_MOBILE_CARRIER_' . $carrier['id_carrier']) != self::DEFAULT_CHECKBOX_DISABLED)
+					$this->_resultCarriers[] = $this->_createResultCarrier($carrier);
+			}
 		}
 	}
 
@@ -377,6 +384,9 @@ class PSShopgateCheckCart
 	 */
 	protected function getProductIdentifiers(ShopgateOrderItem $item)
 	{
+		/**
+		 * check has deprecated prefix (BD)
+		 */
 		return Tools::substr($item->getItemNumber(), 0, 2) == PSShopgatePlugin::PREFIX
 			? explode('_', Tools::substr($item->getItemNumber(), Tools::strlen(PSShopgatePlugin::PREFIX)))
 			: explode('_', $item->getItemNumber());
@@ -438,7 +448,7 @@ class PSShopgateCheckCart
 						$resultItem->setQtyBuyable(Attribute::getAttributeMinimalQty($attributeId));
 						$this->_addItemException(
 							$resultItem, ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_UNDER_MINIMUM_QUANTITY,
-							'requested quantity is lower than required minimum quantity');
+							Tools::displayError('You must add %d minimum quantity', true, $this->_context));
 						break;
 
 					/**
@@ -457,7 +467,9 @@ class PSShopgateCheckCart
 						$resultItem->setQtyBuyable($pSProduct->getQuantity($pSProduct->id, $attributeId));
 						$this->_addItemException(
 							$resultItem,
-							ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE, 'requested quantity is not available');
+							ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE,
+							Tools::displayError('There isn\'t enough product in stock.', true, $this->_context)
+						);
 						break;
 				}
 			}

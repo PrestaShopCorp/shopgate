@@ -110,6 +110,10 @@
     font-weight: 600;
 }
 
+.nobootstrap .margin-form.second {
+    padding: 0 0 1em 50px;
+}
+
 .shopgate-configuration input.api-url {
     background-color: #EFEFEF
 }

@@ -1,5 +1,13 @@
 '''Deutsch'''
 
+'''Version 2.9.x'''
+* translate stock messages
+* fix available_for_order
+* added possibility to disable carrier for mobile shopping
+
+'''Version 2.9.27'''
+* fix tax for tier price
+* fix deprecated prefix DB
 
 '''Version 2.9.26'''
 * added base price for child products
@@ -413,6 +421,15 @@
 
 
 '''English'''
+
+'''Version 2.9.x'''
+* translate stock messages
+* fix available_for_order
+* added possibility to disable carrier for mobile shopping
+
+'''Version 2.9.27'''
+* fix tax for tier price
+* fix deprecated prefix DB
 
 '''Version 2.9.26'''
 * added base price for child products

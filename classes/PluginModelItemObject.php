@@ -219,6 +219,10 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 				$tierPriceItem->setFromQuantity($tierPrice['from_quantity']);
 				$tierPriceItem->setReductionType($this->mapTierPriceType($tierPrice['reduction_type']));
 
+				if($tierPriceItem->getReductionType() != Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_PERCENT && !$this->getUseTax()) {
+					$tierPrice['reduction'] = $tierPrice['reduction'] - ($tierPrice['reduction'] * $this->getTaxPercent() / 100);
+				}
+
 				$tierPriceItem->setReduction($tierPriceItem->getReductionType() == Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_PERCENT ? $tierPrice['reduction'] * 100 : $tierPrice['reduction']);
 
 				if (array_key_exists('id_group', $tierPrice) && $tierPrice['id_group'] != 0)
@@ -461,7 +465,10 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 	{
 		$stockItem = new Shopgate_Model_Catalog_Stock();
 
-		$stockItem->setIsSaleable($this->item->checkQty(1));
+		$availableForOrder = isset($this->item->available_for_order)
+			&& $this->item->available_for_order != 1 ? false : true;
+
+		$stockItem->setIsSaleable($this->item->checkQty(1) && $availableForOrder ? 1 : 0);
 
 		if ($stockItem->getIsSaleable())
 		{
@@ -783,7 +790,13 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 				$stockItem = new Shopgate_Model_Catalog_Stock();
 				$stockItem->setStockQuantity($combination['quantity']);
 
-				$stockItem->setIsSaleable(($this->item->getQuantity($this->item->id, $id) > 0 || Product::isAvailableWhenOutOfStock($this->item->out_of_stock)) ? 1 : 0);
+				$availableForOrder = isset($this->item->available_for_order)
+					&& $this->item->available_for_order != 1 ? false : true;
+
+				$stockItem->setIsSaleable(
+					$availableForOrder &&
+					($this->item->getQuantity($this->item->id, $id) > 0 || Product::isAvailableWhenOutOfStock($this->item->out_of_stock)) ? 1 : 0
+				);
 
 				if ($stockItem->getIsSaleable())
 				{

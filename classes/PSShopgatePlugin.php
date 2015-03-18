@@ -55,6 +55,7 @@ class PSShopgatePlugin extends ShopgatePlugin
 		'COD'     => array (
 			'PAYMENT_NAME'     => 'Cash on Delivery',
 			'NOT_BLOCKED_PAID' => 'PS_OS_PREPARATION',
+			'NOT_BLOCKED_NOT_PAID' => 'PS_OS_PREPARATION',
 		),
 
 		'PAYPAL'  => array (
@@ -303,6 +304,9 @@ class PSShopgatePlugin extends ShopgatePlugin
 	 */
 	protected function getProductIdentifiers(ShopgateOrderItem $item)
 	{
+		/**
+		 * check has deprecated prefix (BD)
+		 */
 		return Tools::substr($item->getItemNumber(), 0, 2) == PSShopgatePlugin::PREFIX
 			? explode('_', Tools::substr($item->getItemNumber(), Tools::strlen(PSShopgatePlugin::PREFIX)))
 			: explode('_', $item->getItemNumber());
@@ -777,22 +781,7 @@ class PSShopgatePlugin extends ShopgatePlugin
 	protected function getRequiredAddressFields()
 	{
 		$address = new Address();
-
-		if (method_exists($address, 'getFieldsRequiredDatabase'))
-		{
-			/**
-			 * getFieldsRequiredDatabase
-			 */
-			return $address->getFieldsRequiredDatabase();
-		}
-		else
-		{
-			/**
-			 * empty
-			 */
-			return array ();
-		}
-
+		return $address->getFieldsRequiredDatabase();
 	}
 
 	/**
@@ -1102,7 +1091,7 @@ class PSShopgatePlugin extends ShopgatePlugin
 	 */
 	protected function itemExportItemNumber($row, $product)
 	{
-		$row['item_number'] = self::PREFIX.$product->id.'_0';
+		$row['item_number'] = $product->id.'_0';
 
 		return $row;
 	}
@@ -1800,7 +1789,7 @@ class PSShopgatePlugin extends ShopgatePlugin
 					$r['is_available'] = 0;
 				}
 
-				$r['item_number']        = self::PREFIX.$product->id.'_'.$id;
+				$r['item_number']        = $product->id.'_'.$id;
 				$r['has_children']       = 0;
 				$r['parent_item_number'] = $row['item_number'];
 				$r['urls_images']        = implode('||', $this->getImageUrls($product, $id));
@@ -1883,12 +1872,14 @@ class PSShopgatePlugin extends ShopgatePlugin
 
 		foreach (Module::getModulesOnDisk() as $module)
 		{
-			array_push($shopInfo['plugins_installed'], array (
-				'id'      => $module->id,
-				'name'    => $module->name,
-				'version' => $module->version,
-				'active'  => $module->active ? 1 : 0
-			));
+			if($module->id != 0) {
+				array_push($shopInfo['plugins_installed'], array (
+					'id'      => $module->id,
+					'name'    => $module->name,
+					'version' => $module->version,
+					'active'  => $module->active ? 1 : 0
+				));
+			}
 		}
 
 		return $shopInfo;
@@ -2851,7 +2842,7 @@ class PSShopgatePluginUS extends PSShopgatePlugin
 					$r['is_available'] = 0;
 				}
 
-				$r['item_number']         = self::PREFIX.$product->id.'_'.$id;
+				$r['item_number']         = $product->id.'_'.$id;
 				$r['has_children']        = 0;
 				$r['parent_item_number']  = $row['item_number'];
 				$r['urls_images']         = implode('||', $this->getImageUrls($product, $id));

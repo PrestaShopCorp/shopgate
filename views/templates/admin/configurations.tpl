@@ -280,19 +280,44 @@
 
         {if $carrier_list}
             <h2>{l s='Carrier mapping' mod='shopgate'}</h2>
-
-            {foreach from=$carrier_list key=config_key item=carrier}
-                <label>{$carrier.name|escape:'htmlall':'UTF-8'}</label>
-                <div class="margin-form">
-                    <select name="settings[{$config_key|escape:html:'UTF-8'}]">
-                        {foreach from=$shipping_service_list key=key item=name}
-                            <option value="{$key|escape:html:'UTF-8'}"
-                                    {if $key == $settings.$config_key}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
-                        {/foreach}
-                    </select>
-                </div>
-            {/foreach}
+            <table>
+                <thead>
+                    <td>
+                        <div class="margin-form">
+                            <h3>{l s='Mapping' mod='shopgate'}</h3>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="margin-form second">
+                            <h3>{l s='Use mobile' mod='shopgate'}</h3>
+                        </div>
+                    </td>
+                </thead>
+                <tbody>
+                {foreach from=$carrier_list key=config_key item=carrier}
+                    <td>
+                        <label>{$carrier.name|escape:'htmlall':'UTF-8'}</label>
+                        <div class="margin-form">
+                            <select name="settings[{$config_key|escape:html:'UTF-8'}]">
+                                {foreach from=$shipping_service_list key=key item=name}
+                                    <option value="{$key|escape:html:'UTF-8'}"
+                                            {if $key == $settings.$config_key}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
+                                {/foreach}
+                            </select>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="margin-form second">
+                            {assign var="enabled" value="USE_MOBILE_CARRIER_{$carrier.id_carrier}"}
+                            <input type="hidden" name="settings[USE_MOBILE_CARRIER_{$carrier.id_carrier|escape:html:'UTF-8'}]" value="off">
+                            <input type="checkbox" name="settings[USE_MOBILE_CARRIER_{$carrier.id_carrier|escape:html:'UTF-8'}]"
+                                   {if $settings[{$enabled}] != 'off' } checked="checked"{/if}>
+                        </div>
+                    </td>
+                </tbody>
+                {/foreach}
+            </table>
         {/if}
-
         <center><input class="button" type="submit" value="{l s='Save' mod='shopgate'}" name="saveConfigurations"></center>
     </fieldset>
+</form>
