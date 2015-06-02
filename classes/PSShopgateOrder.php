@@ -19,6 +19,17 @@
 
 class PSShopgateOrder extends ObjectModel
 {
+	/**
+	 * List of field types(for compatibility reasons)
+	 */
+	const TYPE_INT = 1;
+	const TYPE_BOOL = 2;
+	const TYPE_STRING = 3;
+	const TYPE_FLOAT = 4;
+	const TYPE_DATE = 5;
+	const TYPE_HTML = 6;
+	const TYPE_NOTHING = 7;
+	
 	public $id;
 
 	public $id_shopgate_order;
@@ -50,6 +61,23 @@ class PSShopgateOrder extends ObjectModel
 		'tracking_number' => 32,
 		'shipping_service' => 16,
 		'order_number' => 16
+	);
+
+	public static $definition = array(
+		'table' => 'shopgate_order',
+		'primary' => 'id_shopgate_order',
+		'fields' => array(
+			'order_number' => array('type' => self::TYPE_INT, 'validate' => 'isNullOrUnsignedId', 'copy_post' => false),
+			'id_cart' => 			array('type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true),
+			'shopgate_order' => array('type' => self::TYPE_STRING),
+			'id_order' => array('type' => self::TYPE_INT),
+			'tracking_number' => array('type' => self::TYPE_STRING),
+			'shipping_service' => array('type' => self::TYPE_STRING),
+			'shipping_cost' => array('type' => self::TYPE_FLOAT),
+			'shop_number' => array('type' => self::TYPE_INT),
+			'comments' => array('type' => self::TYPE_STRING),
+			'status' => array('type' => self::TYPE_INT)
+		)
 	);
 
 	public function __construct($id = null, $identifier = 'id_shopgate_order')

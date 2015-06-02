@@ -17,7 +17,7 @@
  * @license   http://opensource.org/licenses/AFL-3.0 Academic Free License ("AFL"), in the version 3.0
  */
 
-if (version_compare(_PS_VERSION_, '1.4.0.2', '>=') && version_compare(_PS_VERSION_, '1.4.1.0', '<=') && !class_exists('CartCore'))
+if (version_compare(_PS_VERSION_, '1.4.0.2', '>=') && version_compare(_PS_VERSION_, '1.4.1.0', '<=') && !class_exists('CartCore', false))
 {
 	/**
 	 * load CartCore for extending it for overwritting methods in 1.4.0.2 to 1.4.1.0

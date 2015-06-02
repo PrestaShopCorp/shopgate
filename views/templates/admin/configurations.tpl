@@ -20,13 +20,13 @@
     <div id="shopgateTeaserHeader">
         <div>
             <div class="logo">
-                <img src="{$mod_dir|escape:html:'UTF-8'}views/img/shopgate_logo.png"/>
+                <img src="{$mod_dir|escape:"html":"UTF-8"}views/img/shopgate_logo.png"/>
             </div>
             <div class="devices">
-                <img src="{$mod_dir|escape:html:'UTF-8'}views/img/devices.png"/>
+                <img src="{$mod_dir|escape:"html":"UTF-8"}views/img/devices.png"/>
             </div>
             <div class="register">
-                <a href="{$offer_url|escape:html:'UTF-8'}" target="_blank" class="register">{l s='Register now​' mod='shopgate'}</a>
+                <a href="{$offer_url|escape:"html":"UTF-8"}" target="_blank" class="register">{l s='Register now​' mod='shopgate'}</a>
             </div>
         </div>
     </div>
@@ -43,7 +43,7 @@
                 <li>{l s='Android Tablet App' mod='shopgate'}</li>
                 <li>{l s='200+ Features' mod='shopgate'}</li>
             </ul>
-            <iframe width="330" height="168" src="{$video_url|escape:'all'}" frameborder="0" allowfullscreen></iframe>
+            <iframe width="330" height="168" src="{$video_url|escape:"htmlall":"UTF-8"}" frameborder="0" allowfullscreen></iframe>
         </div>
 
         <div id="shopgateTeaserMain">
@@ -51,7 +51,7 @@
 
             <p>{l s='With Shopgate you can sell your products quickly and easily via mobile devices. We will create a mobile-optimized webshop and innovative shopping apps with numerous features. Increase your sales and the customer\'s interest through targeted marketing!' mod='shopgate'}</p>
 
-            <img class="contentImage" src="{$mod_dir|escape:html:'UTF-8'}views/img/content_image.png"/>
+            <img class="contentImage" src="{$mod_dir|escape:"html":"UTF-8"}views/img/content_image.png"/>
 
             <h4>{l s='Your advantages with Shopgate​:' mod='shopgate'}</h4>
             <ul>
@@ -65,7 +65,7 @@
             </ul>
 
             <div class="register">
-                <a href="{$offer_url|escape:html:'UTF-8'}" target="_blank" class="register">{l s='Register now' mod='shopgate'}</a>
+                <a href="{$offer_url|escape:"html":"UTF-8"}" target="_blank" class="register">{l s='Register now' mod='shopgate'}</a>
             </div>
             <div class="registerText">
                 {l s='Got questions?' mod='shopgate'}<br/>
@@ -82,7 +82,7 @@
     <h2>{l s='Shopgate' mod='shopgate'}</h2>
 
     <p>
-        <img src="{$mod_dir|escape:html:'UTF-8'}views/img/logo_web.png"/>
+        <img src="{$mod_dir|escape:"html":"UTF-8"}views/img/logo_web.png"/>
     </p>
 
     <p>
@@ -106,7 +106,7 @@
 
 <form method="post" action="" class="shopgate-configuration">
     <fieldset>
-        <legend><img title="" alt="" src="{$mod_dir|escape:html:'UTF-8'}views/img/logo.png">{l s='Configuration' mod='shopgate'}</legend>
+        <legend><img title="" alt="" src="{$mod_dir|escape:"html":"UTF-8"}views/img/logo.png">{l s='Configuration' mod='shopgate'}</legend>
 
         <h2>{l s='Info' mod='shopgate'}</h2>
 
@@ -151,7 +151,7 @@
         <div class="margin-form">
             <select name="configs[language]">
                 {foreach from=$langs key=key item=name}
-                    <option value="{$key|escape:html:'UTF-8'}"
+                    <option value="{$key|escape:"html":"UTF-8"}"
                             {if $key == $configs.language}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
                 {/foreach}
             </select>
@@ -161,7 +161,7 @@
         <div class="margin-form">
             <select name="settings[SHOPGATE_SHIPPING_SERVICE]">
                 {foreach from=$shipping_service_list key=key item=name}
-                    <option value="{$key|escape:html:'UTF-8'}"
+                    <option value="{$key|escape:"html":"UTF-8"}"
                             {if $key == $settings.SHOPGATE_SHIPPING_SERVICE}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
                 {/foreach}
             </select>
@@ -184,7 +184,7 @@
         <div class="margin-form">
             <select name="configs[server]" onchange="shopgate_settings_toggle_server(this);">
                 {foreach from=$servers key=key item=name}
-                    <option value="{$key|escape:html:'UTF-8'}"
+                    <option value="{$key|escape:"html":"UTF-8"}"
                             {if $key == $configs.server}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
                 {/foreach}
             </select>
@@ -262,7 +262,7 @@
         <div class="margin-form">
             <select name="settings[SHOPGATE_PRODUCT_DESCRIPTION]">
                 {foreach from=$product_export_descriptions key=key item=name}
-                    <option value="{$key|escape:html:'UTF-8'}"
+                    <option value="{$key|escape:"html":"UTF-8"}"
                             {if $key == $settings.SHOPGATE_PRODUCT_DESCRIPTION}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
                 {/foreach}
             </select>
@@ -272,7 +272,7 @@
         <div class="margin-form">
             <select name="settings[SHOPGATE_EXPORT_PRICE_TYPE]">
                 {foreach from=$product_export_price_type key=key item=name}
-                    <option value="{$key|escape:html:'UTF-8'}"
+                    <option value="{$key|escape:"html":"UTF-8"}"
                             {if $key == $settings.SHOPGATE_EXPORT_PRICE_TYPE}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
                 {/foreach}
             </select>
@@ -298,9 +298,9 @@
                     <td>
                         <label>{$carrier.name|escape:'htmlall':'UTF-8'}</label>
                         <div class="margin-form">
-                            <select name="settings[{$config_key|escape:html:'UTF-8'}]">
+                            <select name="settings[{$config_key|escape:"html":"UTF-8"}]">
                                 {foreach from=$shipping_service_list key=key item=name}
-                                    <option value="{$key|escape:html:'UTF-8'}"
+                                    <option value="{$key|escape:"html":"UTF-8"}"
                                             {if $key == $settings.$config_key}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
                                 {/foreach}
                             </select>
@@ -308,10 +308,9 @@
                     </td>
                     <td>
                         <div class="margin-form second">
-                            {assign var="enabled" value="USE_MOBILE_CARRIER_{$carrier.id_carrier}"}
-                            <input type="hidden" name="settings[USE_MOBILE_CARRIER_{$carrier.id_carrier|escape:html:'UTF-8'}]" value="off">
-                            <input type="checkbox" name="settings[USE_MOBILE_CARRIER_{$carrier.id_carrier|escape:html:'UTF-8'}]"
-                                   {if $settings[{$enabled}] != 'off' } checked="checked"{/if}>
+                            {assign var="enabled" value="USE_MOBILE_CARRIER_`$carrier.id_carrier`"}
+                            <input type="hidden" name="settings[{$enabled}]" value="off">
+                            <input type="checkbox" name="settings[{$enabled}]" {if $settings[$enabled] != 'off'} checked="checked"{/if}>
                         </div>
                     </td>
                 </tbody>

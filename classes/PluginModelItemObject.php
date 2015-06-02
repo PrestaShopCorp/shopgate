@@ -188,12 +188,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 
 		}
 
-		/**
-		 * ignored because also catalog price rules are tier price rules :-(
-		 *
-		 * $priceItem->setSalePrice($this->getItemPrice($this->getUid(), NULL, $this->getUseTax(), true));
-		 *
-		 */
+		$priceItem->setSalePrice($this->getItemPrice($this->getUid(), null, $this->getUseTax(), true));
 
 		if (version_compare(_PS_VERSION_, '1.5.0.0', '>='))
 		{
@@ -203,40 +198,9 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 			$priceItem->setMinimumOrderAmount($this->item->minimal_quantity);
 		}
 
-		/**
-		 * tier prices
-		 */
-		$tierPrices = $this->getTierPricesFromDb();
+		foreach ($this->getTierPrices($priceItem) as $tierPriceRule)
+			$priceItem->addTierPriceGroup($tierPriceRule);
 
-		if (is_array($tierPrices))
-		{
-			foreach ($tierPrices as $tierPrice)
-			{
-
-				$tierPriceItem = new Shopgate_Model_Catalog_TierPrice();
-
-				$tierPriceItem->setAggregateChildren(true);
-				$tierPriceItem->setFromQuantity($tierPrice['from_quantity']);
-				$tierPriceItem->setReductionType($this->mapTierPriceType($tierPrice['reduction_type']));
-
-				if($tierPriceItem->getReductionType() != Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_PERCENT && !$this->getUseTax()) {
-					$tierPrice['reduction'] = $tierPrice['reduction'] - ($tierPrice['reduction'] * $this->getTaxPercent() / 100);
-				}
-
-				$tierPriceItem->setReduction($tierPriceItem->getReductionType() == Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_PERCENT ? $tierPrice['reduction'] * 100 : $tierPrice['reduction']);
-
-				if (array_key_exists('id_group', $tierPrice) && $tierPrice['id_group'] != 0)
-				{
-					/**
-					 * set id_group
-					 */
-					$tierPriceItem->setCustomerGroupUid($tierPrice['id_group']);
-				}
-
-				$priceItem->addTierPriceGroup($tierPriceItem);
-
-			}
-		}
 
 		parent::setPrice($priceItem);
 	}
@@ -652,6 +616,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 				$inputItem = new Shopgate_Model_Catalog_Input();
 				$inputItem->setUid($customizationField['id_customization_field']);
 				$inputItem->setLabel($customizationField['name']);
+				$inputItem->setAdditionalPrice(0);
 
 				if ($customizationField['required'] == 1)
 				{
@@ -703,7 +668,6 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 			foreach ($combinations as $id => $c)
 			{
 				$combination = current($c);
-				$combinationItem = new Combination($id);
 
 				/**
 				 * global info
@@ -747,16 +711,17 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 				/**
 				 * base price
 				 */
-				if ($this->item->unit_price != 0) {
+				if ($this->item->unit_price != 0)
+				{
 
-					if(isset($combination['unit_price_impact']) && $combination['unit_price_impact'] != 0) {
+					if (isset($combination['unit_price_impact']) && $combination['unit_price_impact'] != 0)
+					{
 
 						$productPrice = $this->getItemPrice($this->getUid(), $id, true);
 						$basePrice = ($productPrice / $this->item->unit_price_ratio) + ($combination['unit_price_impact']);
 
-						if(!$this->getUseTax()) {
+						if (!$this->getUseTax())
 							$basePrice /= (($this->getTaxPercent() + 100) / 100);
-						}
 
 						$basePrice = number_format($basePrice, 2);
 
@@ -781,6 +746,10 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 
 				$priceItem->setPrice($this->getItemPrice($this->getUid(), $id, $this->getUseTax()));
 				$priceItem->setSalePrice($this->getItemPrice($this->getUid(), $id, $this->getUseTax(), true));
+
+				foreach ($this->getTierPrices($priceItem, $id) as $tierPriceRule)
+					$priceItem->addTierPriceGroup($tierPriceRule);
+
 
 				$childItemItem->setPrice($priceItem);
 
@@ -980,6 +949,166 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 	}
 
 	/**
+	 * returns an array of Shopgate_Model_Catalog_TierPrice
+	 *
+	 * @param Shopgate_Model_Catalog_Price $priceItem
+	 * @param int $variantId
+	 * @return array of Shopgate_Model_Catalog_TierPrice
+	 */
+	protected function getTierPrices($priceItem, $variantId = null)
+	{
+		$tierPriceRules = array();
+
+		$tierPrices = $this->getTierPricesFromDb();
+
+		if (version_compare(_PS_VERSION_, '1.5.0.5', '<='))
+			$shopId = $this->getContext()->shop->getID();
+		else
+			$shopId = $this->getContext()->shop->getContextShopID();
+
+		if (is_array($tierPrices))
+		{
+
+			$overallValidRuleWithQuantityOneAvailable = false;
+			$visitorRuleWithQuantityOneAvailable = false;
+			foreach ($tierPrices as $tierPrice)
+			{
+				if ($tierPrice['from_quantity'] == 1 && $tierPrice['id_group'] == 1)
+					$visitorRuleWithQuantityOneAvailable = true;
+				if ($tierPrice['from_quantity'] == 1 && $tierPrice['id_group'] == 0)
+					$overallValidRuleWithQuantityOneAvailable = true;
+			}
+
+			$customerGroups = array();
+			if ($visitorRuleWithQuantityOneAvailable && $overallValidRuleWithQuantityOneAvailable)
+			{
+				$customerGroups = Group::getGroups(
+					Configuration::get('SHOPGATE_LANGUAGE_ID'),
+					$this->context->shop->id ? $this->context->shop->id : false
+				);
+			}
+
+			foreach ($tierPrices as $tierPrice)
+			{
+
+				if ($tierPrice['from_quantity'] == 1 && $tierPrice['id_group'] == 0 && !$visitorRuleWithQuantityOneAvailable)
+				{
+					/*
+					 * In case the tier price starts from quantity 1 and the discount is available for all user this should be ignored as tier price because its already honoured as sale price
+					 * Exception: There is a default/Visitor rule!
+					 */
+					continue;
+				}
+
+				if (($validFrom = strtotime($tierPrice['from'])) >= 0 && time() <= $validFrom)
+				{
+					/*
+					 * the discount is valid from a specific date but the date is still in the future => ignore this rule
+					 */
+					continue;
+				}
+
+				if (($validTo = strtotime($tierPrice['to'])) >= 0 && time() >= $validTo)
+				{
+					/*
+					 * the discount is valid to a specific date but the date is in the past => ignore this rule
+					 */
+					continue;
+				}
+
+				if (!empty($tierPrice['id_currency']) && $tierPrice['id_currency'] != $this->getContext()->currency->iso_code)
+				{
+					/*
+					 * the discount is only valid for one specific currency and we are not exporting this specific currency
+					 */
+					continue;
+				}
+
+				/*
+				 * hack for Prestashop versions >= 1.5.0.15. for more details see: file: classes/SpecificPrice.php method: getSpecificPrice()
+				 * Since 1.5.0.15 Prestashop uses in case PS_QTY_DISCOUNT_ON_COMBINATION is set to 0 (default) the cart quantity for finding the correct price.
+				 */
+				Configuration::set('PS_QTY_DISCOUNT_ON_COMBINATION', 1);
+				$finalPrice = $this->getItemPrice($this->item->id, $variantId, $this->getUseTax(), true, (int)$tierPrice['from_quantity']);
+
+				$tierPriceItem = new Shopgate_Model_Catalog_TierPrice();
+				$tierPriceItem->setFromQuantity($tierPrice['from_quantity']);
+				$tierPriceItem->setReductionType(Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_FIXED);
+
+				if (array_key_exists('id_group', $tierPrice) && $tierPrice['id_group'] != 0)
+				{
+					$tierPriceItem->setCustomerGroupUid($tierPrice['id_group']);
+
+					if (version_compare(_PS_VERSION_, '1.4.0.17', '<'))
+					{
+						/*
+						 * We don't support customer group related prices in versions lower then 1.4.0.17
+						 * because there is no proper way to let the shopping cart solution calculate the price
+						 */
+						continue;
+					}
+					else
+						$finalPrice = $this->calculateCustomerGroupPrice($shopId, $this->item->id, $variantId, $tierPrice['id_group'], (int)$tierPrice['from_quantity']);
+				}
+
+				if (version_compare(_PS_VERSION_, '1.5.0.0', '>=') && $tierPrice['from_quantity'] == 1 && $tierPrice['id_group'] == 0 && $visitorRuleWithQuantityOneAvailable)
+				{
+					/**
+					 * customer groups have changed since 1.5.0.1. The customer group with id = 1 is called "Visitor"
+					 * and must be - with a quantity of 1 and in combination with another general rule thats also quantity of 1 - treated in a special way.
+					 *
+					 * The one rule must be split off in separate rules for each customer group except the Visitor rule
+					 */
+					$tierPriceItemCache = $tierPriceItem;
+					foreach ($customerGroups as $customerGroup)
+					{
+						if ($customerGroup['id_group'] == 1)
+						{
+							/**
+							 * skip Visitor price rule
+							 */
+							continue;
+						}
+						$tierPriceItem = clone $tierPriceItemCache;
+						$tierPriceItem->setCustomerGroupUid($customerGroup['id_group']);
+
+						$finalPrice = $this->calculateCustomerGroupPrice($shopId, $this->item->id, $variantId, $customerGroup['id_group'], (int)$tierPrice['from_quantity']);
+
+						$this->addTierPriceRule($priceItem->getSalePrice() - $finalPrice, $tierPriceItem, $tierPriceRules);
+					}
+					continue;
+				}
+
+				$this->addTierPriceRule($priceItem->getSalePrice() - $finalPrice, $tierPriceItem, $tierPriceRules);
+			}
+		}
+
+		return $tierPriceRules;
+	}
+
+	/**
+	 * calculates the reduction and decides if the tier price is added
+	 *
+	 * @param float $reducedAmount
+	 * @param Shopgate_Model_Catalog_Price $priceItem
+	 * @param Shopgate_Model_Catalog_TierPrice $tierPriceItem
+	 * @param array $tierPriceRules
+	 * @post $tierPriceRules contains the new tier price if the reductionAmount is not zero
+	 */
+	protected function addTierPriceRule($reducedAmount, $tierPriceItem, &$tierPriceRules)
+	{
+		if ($reducedAmount != 0)
+		{
+			/*
+			 * In case a specific price rule (e.g. for Visitors) is automatic calculated as a general discount - the specific price rule will have an amount 0.
+			 * We need to prevent the export of such price rule by use of this condition
+			 */
+			$tierPriceItem->setReduction($reducedAmount);
+			$tierPriceRules[] = $tierPriceItem;
+		}
+	}
+
+	/**
 	 * check table name
 	 *
 	 * @param $tableName
@@ -988,7 +1117,7 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 	 */
 	protected function checkTable($tableName)
 	{
-		foreach (Db::getInstance()->ExecuteS('SHOW TABLES') as $key => $name)
+		foreach (Db::getInstance()->ExecuteS('SHOW TABLES') as $name)
 		{
 			if ($tableName == current($name))
 			{
@@ -1004,7 +1133,8 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 
 	protected function getCategoriesFromDb()
 	{
-		if (version_compare(_PS_VERSION_, '1.5.0.0', '>='))
+		// table ps_category_shop is available since 1.5.0.5
+		if (version_compare(_PS_VERSION_, '1.5.0.5', '>='))
 		{
 			$select = sprintf('SELECT
 						cp.id_category,
@@ -1058,24 +1188,6 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 	 *
 	 * @return string
 	 */
-	protected function mapTierPriceType($originalType)
-	{
-		switch ($originalType)
-		{
-			case 'amount' :
-				return Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_FIXED;
-			case 'percentage' :
-				return Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_PERCENT;
-			case 'difference' :
-				return Shopgate_Model_Catalog_TierPrice::DEFAULT_TIER_PRICE_TYPE_DIFFERENCE;
-		}
-	}
-
-	/**
-	 * @param $originalType
-	 *
-	 * @return string
-	 */
 	protected function mapVisibility($originalType)
 	{
 		switch ($originalType)
@@ -1108,12 +1220,34 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 	 * @param null $attributeId
 	 * @param bool $useTax
 	 * @param bool $useReduction
+	 * @param int  $quantity
 	 *
 	 * @return float
 	 */
-	protected function getItemPrice($productId, $attributeId = null, $useTax = false, $useReduction = false)
+	protected function getItemPrice($productId, $attributeId = null, $useTax = false, $useReduction = false, $quantity = 1)
 	{
-		return Product::getPriceStatic($productId, $useTax, $attributeId, 6, null, false, $useReduction);
+		return Product::getPriceStatic($productId, $useTax, $attributeId, 6, null, false, $useReduction, $quantity);
+	}
+
+	/**
+	 * calculates the price for a specific customer group
+	 *
+	 * @param int $shopId
+	 * @param int $itemId
+	 * @param int $variantId
+	 * @param int $groupId
+	 * @param int $qty
+	 */
+	protected function calculateCustomerGroupPrice($shopId, $itemId, $variantId, $groupId, $qty)
+	{
+		/*
+		 * class Product method: priceCalculation is available Since 1.4.0.17
+		 */
+		$specific_price = ''; // This needs to be passed by reference
+		return Product::priceCalculation($shopId, $itemId, $variantId, (int)Country::getDefaultCountryId(), 0, 0,
+			(int)(Validate::isLoadedObject($this->getContext()->currency) ? $this->getContext()->currency->id : Configuration::get('PS_CURRENCY_DEFAULT')),
+			$groupId, (int)$qty, $this->getUseTax(), 6, false,
+			true, true, $specific_price, true);
 	}
 
 	/**

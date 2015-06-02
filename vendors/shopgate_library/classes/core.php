@@ -961,7 +961,7 @@ class ShopgateBuilder {
 			$xmlModelNames = array(
 					'get_items' => 'Shopgate_Model_Catalog_Product',
 					'get_categories' => 'Shopgate_Model_Catalog_Category',
-					'get_reviews' => 'Shopgate_Model_Review'
+					'get_reviews' => 'Shopgate_Model_Catalog_Review'
 			);
 			
 			if ($this->config->getExportConvertEncoding()) {
@@ -1734,9 +1734,9 @@ abstract class ShopgatePlugin extends ShopgateObject {
 	}
 
 	/**
-	 * @param Shopgate_Model_Review $review
+	 * @param Shopgate_Model_Catalog_Review $review
 	 */
-	protected final function addReviewModel(Shopgate_Model_Review $review) {
+	protected final function addReviewModel(Shopgate_Model_Catalog_Review $review) {
 		$this->addModel($review);
 	}
 

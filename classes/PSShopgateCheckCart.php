@@ -39,7 +39,7 @@ class PSShopgateCheckCart
 	/**
 	 * default dummy email
 	 */
-	const DEFAULT_CUSTOMER_EMAIL = 'example@shopgate.com';
+	const DEFAULT_CUSTOMER_EMAIL_PATTERN = '%s_example@shopgate.com';
 
 	/**
 	 * default dummy password
@@ -50,6 +50,11 @@ class PSShopgateCheckCart
 	 * default dummy alias
 	 */
 	const DEFAULT_ADDRESS_ALIAS = 'shopgate_check_cart';
+
+	/**
+	 * int
+	 */
+	const DEFAULT_EXPIRED_DATE_SECONDS = 30;
 
 	/**
 	 * default checkbox disables
@@ -115,10 +120,16 @@ class PSShopgateCheckCart
 	protected $_customerDummyCreated = false;
 
 	/**
+	 * @var null|string
+	 */
+	protected $_md5MicroTime = null;
+
+	/**
 	 * @param ShopgateCart $shopgateCart
 	 */
 	public function __construct(ShopgateCart $shopgateCart)
 	{
+		$this->_md5MicroTime = substr(md5(microtime(true)), 0, 12);
 		$this->_context      = Context::getContext();
 		$this->_shopgateCart = $shopgateCart;
 	}
@@ -233,6 +244,11 @@ class PSShopgateCheckCart
 					$resultExternalCouponItem->setNotValidMessage($validateException);
 				}
 
+				/**
+				 * add to the cart to validate with other cart rules
+				 */
+				$this->_context->cart->addCartRule($cartRule->id);
+
 			}
 			else
 			{
@@ -329,7 +345,7 @@ class PSShopgateCheckCart
 			$this->_context->customer            = new Customer();
 			$this->_context->customer->lastname  = self::DEFAULT_CUSTOMER_LAST_NAME;
 			$this->_context->customer->firstname = self::DEFAULT_CUSTOMER_FIRST_NAME;
-			$this->_context->customer->email     = self::DEFAULT_CUSTOMER_EMAIL;
+			$this->_context->customer->email     = $this->getCurrentDummyEmail();
 			$this->_context->customer->passwd    = self::DEFAULT_CUSTOMER_PASSWD;
 			$this->_context->customer->add();
 			$this->_customerDummyCreated = true;
@@ -348,10 +364,9 @@ class PSShopgateCheckCart
 		{
 			/** @var CarrierCore $carrierModel */
 			$carrierModel = new Carrier();
-			foreach ($carrierModel->getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), null, $this->_context->cart) as $carrier) {
-				if(Configuration::get('USE_MOBILE_CARRIER_' . $carrier['id_carrier']) != self::DEFAULT_CHECKBOX_DISABLED)
+			foreach ($carrierModel->getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), null, $this->_context->cart) as $carrier)
+				if (Configuration::get('USE_MOBILE_CARRIER_'.$carrier['id_carrier']) != self::DEFAULT_CHECKBOX_DISABLED)
 					$this->_resultCarriers[] = $this->_createResultCarrier($carrier);
-			}
 		}
 	}
 
@@ -652,7 +667,7 @@ class PSShopgateCheckCart
 		$_resultAddress = new Address();
 
 		$_resultAddress->id_country = $this->_getCountryIdByIsoCode($address->getCountry());
-		$_resultAddress->alias      = self::DEFAULT_ADDRESS_ALIAS;
+		$_resultAddress->alias      = $this->getCurrentDummyAlias();
 
 		$_resultAddress->firstname    = $address->getFirstName();
 		$_resultAddress->lastname     = $address->getLastName();
@@ -686,7 +701,7 @@ class PSShopgateCheckCart
 		if ($isoCode && $countryId = Country::getByIso($isoCode))
 			return $countryId;
 		else
-			$this->_addException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, ' invalid or empty iso code #'.$isoCode);
+			$this->_addException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, ' invalid or empty country iso code #'.$isoCode);
 	}
 
 	/**
@@ -714,10 +729,14 @@ class PSShopgateCheckCart
 					$stateId = State::getIdByIso($stateParts[0]);
 			}
 
-			if ($stateId)
+			if (!empty($stateId))
 				return $stateId;
-			else
-				$this->_addException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, ' invalid or empty iso code #'.$isoCode);
+
+			$states = State::getStatesByIdCountry($stateParts[0]);
+			if (empty($states))
+				return '';
+
+			$this->_addException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, ' invalid or empty state iso code #'.$isoCode);
 		}
 	}
 
@@ -740,25 +759,84 @@ class PSShopgateCheckCart
 	 */
 	public function __destruct()
 	{
-		foreach ($this->getCustomersByEmail(PSShopgateCheckCart::DEFAULT_CUSTOMER_EMAIL) as $customer)
+
+		/**
+		 * remove current dummy customer
+		 */
+		foreach ($this->getCustomersByEmail($this->getCurrentDummyEmail()) as $customer)
 		{
 			$currentCustomer = new Customer($customer['id_customer']);
 			$currentCustomer->delete();
 		}
+
+		/**
+		 * remove current dummy address
+		 */
+		foreach ($this->getAddressesByAlias($this->getCurrentDummyAlias()) as $address) {
+			$currentAddress = new Address($address['id_address']);
+			$currentAddress->delete();
+		}
+
+		/**
+		 * remove expired dummy customers
+		 */
+		foreach ($this->getCustomersByEmail(substr(self::DEFAULT_CUSTOMER_EMAIL_PATTERN, 3), true) as $customer)
+		{
+			$currentCustomer = new Customer($customer['id_customer']);
+			$currentCustomer->delete();
+		}
+
+		/**
+		 * remove expired aliases
+		 */
+		foreach ($this->getAddressesByAlias(self::DEFAULT_ADDRESS_ALIAS, true) as $address) {
+			$currentAddress = new Address($address['id_address']);
+			$currentAddress->delete();
+		}
 	}
 
 	/**
-	 * Retrieve customers by email address
+	 *  Retrieve customers by email address
 	 *
-	 * @static
-	 *
-	 * @param $email
+	 * @param      $email
+	 * @param bool $fetchExpired
 	 *
 	 * @return array
+	 * @throws PrestaShopDatabaseException
 	 */
-	public function getCustomersByEmail($email)
+	public function getCustomersByEmail($email, $fetchExpired = false)
 	{
-		$query = 'SELECT id_customer FROM '._DB_PREFIX_.'customer WHERE email = "'.pSQL($email).'"';
+		switch ($fetchExpired) {
+			case true :
+				$query = 'SELECT id_customer FROM '._DB_PREFIX_.'customer WHERE email LIKE "%'.pSQL($email).'" AND date_add < ' . '"' . $this->getExpiredTime() . '"';
+				break;
+			default :
+				$query = 'SELECT id_customer FROM '._DB_PREFIX_.'customer WHERE email = "'.pSQL($email).'"';
+				break;
+		}
+
+		return Db::getInstance()->ExecuteS($query);
+	}
+
+	/**
+	 * Retrieve address ids by alias
+	 *
+	 * @param      $alias
+	 * @param bool $fetchExpired
+	 *
+	 * @return array
+	 * @throws PrestaShopDatabaseException
+	 */
+	public function getAddressesByAlias($alias, $fetchExpired = false)
+	{
+		switch ($fetchExpired) {
+			case true :
+				$query = 'SELECT id_address FROM '._DB_PREFIX_.'address WHERE alias LIKE "'.pSQL($alias).'%" AND date_add < ' . '"' . $this->getExpiredTime() . '"';
+				break;
+			default :
+				$query = 'SELECT id_address FROM '._DB_PREFIX_.'address WHERE alias = "'.pSQL($alias).'"';
+				break;
+		}
 
 		return Db::getInstance()->ExecuteS($query);
 	}
@@ -782,4 +860,35 @@ class PSShopgateCheckCart
 
 		return false;
 	}
+
+	/**
+	 * @return string
+	 */
+	protected function getCurrentDummyAlias() {
+		return sprintf(
+			"%s_%s",
+			self::DEFAULT_ADDRESS_ALIAS,
+			$this->_md5MicroTime
+		);
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function getCurrentDummyEmail()
+	{
+		return sprintf(
+			self::DEFAULT_CUSTOMER_EMAIL_PATTERN,
+			$this->_md5MicroTime
+		);
+	}
+
+	/**
+	 * @return bool|string
+	 */
+	protected function getExpiredTime()
+	{
+		return date('Y-m-d H:i:s', time() + self::DEFAULT_EXPIRED_DATE_SECONDS);
+	}
+
 }

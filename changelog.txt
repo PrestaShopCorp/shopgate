@@ -1,9 +1,45 @@
 '''Deutsch'''
 
-'''Version 2.9.x'''
+'''Version 2.9.37'''
+* Funktion um Reviews zu exportieren für XML und CSV aktiviert
+* Kompatibilitätsproblem mit der shopgate_orders Tabelle in Prestashop >= 1.6.0.11 behoben
+
+'''Version 2.9.36'''
+* Fehler bei check_cart behoben
+* Fehler bei add_order behoben
+* Fehler beim Berechnen der Staffelpreise beohben
+* Fehler bei der Weiterleitung behoben
+
+'''Version 2.9.35'''
+* Fehler auf der Konfigurationsseite des Moduls für ältere Versionen behoben
+
+'''Version 2.9.34'''
+* Fehler im Produktexport der Steuerklassen behoben
+
+'''Version 2.9.33'''
+* Fehler beim Export der Steuersätze und Produktsteuerklassen behoben
+
+'''Version 2.9.32'''
+* Fehler beim Staffelpreiseexport behoben
+* Kompatibilitätsprobleme mit Prestashop 1.5.0.x behoben
+
+'''Version 2.9.30'''
+* Fehler in check_cart (bzgl. state codes) behoben
+
+'''Version 2.9.29'''
+* Standardwert für "Versand nicht blockiert" und "Bestellung noch nicht bezahlt" geändert
+* Validierungsregel für die Warenkorbsynchronisierung hinzugefügt
+* Zusätzlicher Preis für Produktoptionen wird berücksichtigt
+* Benutzer können nun im Shopsystem registriert werden
+* Fehler beim Auslesen der Steuern behoben
+* Fehler im Setzen des Postleitzahlenbereichs behoben
+* Verarbeitung der Inputs bei Bestellungen
+
+'''Version 2.9.28'''
 * translate stock messages
 * fix available_for_order
 * added possibility to disable carrier for mobile shopping
+* fix sale price for children
 
 '''Version 2.9.27'''
 * fix tax for tier price
@@ -254,11 +290,11 @@
 * ermöglicht den Export von Kategorien ohne Eltern für Prestashop >= 1.5.0.0
 
 '''Version 2.5.3'''
-* exportiert nun originale Produktbilder und nicht mehr "Thickbox" 
+* exportiert nun originale Produktbilder und nicht mehr "Thickbox"
 
 '''Version 2.5.2'''
 * neue Konfiguration für den Export der Produkt (Kurz-)Beschreibung
-* erweiterte Kompatibilität der "Dropdown" Konfigurationen für Prestashop >=1.3 
+* erweiterte Kompatibilität der "Dropdown" Konfigurationen für Prestashop >=1.3
 
 '''Version 2.5.1'''
 * Feature: Nutzung der Shopcoupons möglich für Prestashop >= 1.4
@@ -307,7 +343,7 @@
 * Anpassungen an Prestashop Code Conventions
 
 '''Version 2.3.3'''
-* Shopgate Library in Ordner "/vendors" verschoben 
+* Shopgate Library in Ordner "/vendors" verschoben
 * Shopgate Prestashop Modul Code unter AFL Lizenz veröffentlicht
 * nutzt die Shopgate Library 2.3.6
 
@@ -422,10 +458,46 @@
 
 '''English'''
 
-'''Version 2.9.x'''
+'''Version 2.9.37'''
+* added export methods for reviews - XML and CSV
+* fixed compatibility issue with our shopgate_orders table in Prestashop >= 1.6.0.11
+
+'''Version 2.9.36'''
+* fixed error in check_cart
+* fixed error in add_order
+* fixed error while calculating tier prices
+* fixed error in mobile redirect
+
+'''Version 2.9.35'''
+* fixed issue on configurations page of the module in older versions
+
+'''Version 2.9.34'''
+* fixed issue in product export of tax class
+
+'''Version 2.9.33'''
+* fixed issue in export of tax rates and product tax classes
+
+'''Version 2.9.32'''
+* fixed a bug in export of tier prices
+* fixed compatibility issue in version Prestashop 1.5.0.x
+
+'''Version 2.9.30'''
+* fixed a bug in check_cart (concerning state codes)
+
+'''Version 2.9.29'''
+* changed default value for not shipping blocked and not paid orders
+* added validate cart rule combinations with check_cart
+* add additional price to import options
+* enabled register_customer
+* bug in getting the tax rates fixed
+* bug in setting the zipcode range for taxes fixed
+* add inputs for order
+
+'''Version 2.9.28'''
 * translate stock messages
 * fix available_for_order
 * added possibility to disable carrier for mobile shopping
+* fix sale price for children
 
 '''Version 2.9.27'''
 * fix tax for tier price
@@ -730,7 +802,7 @@
 
 '''Version 2.3.3'''
 * Shopgate Library moved to directory "/vendors"
-* Shopgate Prestashop module code published under AFL license 
+* Shopgate Prestashop module code published under AFL license
 * uses Shopgate Library 2.3.6
 
 '''Version 2.3.2'''

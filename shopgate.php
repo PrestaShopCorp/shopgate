@@ -23,7 +23,7 @@ if (!defined('_PS_VERSION_'))
 	//Translations
 	$this->l('Shopgate order ID:');
 */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.27');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.37');
 define('SHOPGATE_DIR', _PS_MODULE_DIR_.'shopgate/');
 
 require_once(SHOPGATE_DIR.'vendors/shopgate_library/shopgate.php');
@@ -68,7 +68,7 @@ class ShopGate extends PaymentModule
 		else
 			$this->tab = 'mobile';
 
-		$this->version    = SHOPGATE_PLUGIN_VERSION;
+		$this->version    = '2.9.37';
 		$this->author     = 'Shopgate';
 		$this->module_key = '';
 
@@ -108,8 +108,6 @@ class ShopGate extends PaymentModule
 			'Mobile Payment'   => $this->l('Mobile Payment'),
 			'Shopgate'         => $this->l('Shopgate')
 		);
-
-		$this->ps_versions_compliancy = array('min' => '1.4.0.2', 'max' => _PS_VERSION_);
 	}
 
 	private function setCarrier(Carrier $carrier)
@@ -496,7 +494,7 @@ class ShopGate extends PaymentModule
 			$shopgateConfig->saveFile(array ('shop_is_active'));
 		} catch(ShopgateLibraryException $ex)
 		{
-			$exception = $ex;
+			unset($ex);
 		}
 
 		// Keeps order states
@@ -539,7 +537,10 @@ class ShopGate extends PaymentModule
 			if (!$orderState->add())
 				return false;
 
-			copy(dirname(__FILE__).'/logo.gif', dirname(__FILE__).'/../../img/os/'.(int)$orderState->id.'.gif');
+			if (version_compare(_PS_VERSION_, '1.5.5.0', '>='))
+				Tools::copy(dirname(__FILE__).'/logo.gif', dirname(__FILE__).'/../../img/os/'.(int)$orderState->id.'.gif');
+			else
+				copy(dirname(__FILE__).'/logo.gif', dirname(__FILE__).'/../../img/os/'.(int)$orderState->id.'.gif');
 		}
 
 		return ($this->configurations[$state] = $orderState->id);
@@ -593,16 +594,15 @@ class ShopGate extends PaymentModule
 			$productItem        = new Product($id_product);
 			$defaultAttributeId = $productItem->getDefaultAttribute($id_product);
 			$shopgateJsHeader   = $shopgateRedirector->buildScriptItem(
-				sprintf('%d_%d',
+				sprintf('%d%s',
 					$id_product,
-					$defaultAttributeId ? $defaultAttributeId : 0
+					$defaultAttributeId ? '_'.$defaultAttributeId : ''
 				)
 			);
 		}
 		elseif ($id_category = Tools::getValue('id_category', 0))
 			$shopgateJsHeader = $shopgateRedirector->buildScriptCategory($id_category);
-		elseif (isset($_SERVER['SCRIPT_FILENAME']) && mb_strpos($_SERVER['SCRIPT_FILENAME'], $indexFile) !== false && empty($controller))
-			// TODO: doesn't work yet!
+		elseif (isset($_SERVER['SCRIPT_FILENAME']) && mb_strpos($_SERVER['SCRIPT_FILENAME'], $indexFile) !== false && (empty($controller) || $controller == 'index'))
 			$shopgateJsHeader = $shopgateRedirector->buildScriptShop();
 		else
 			$shopgateJsHeader = $shopgateRedirector->buildScriptDefault();
@@ -624,7 +624,7 @@ class ShopGate extends PaymentModule
 	{
 		$header = '';
 
-		if(Tools::getValue('controller') == 'AdminOrders')
+		if (Tools::getValue('controller') == 'AdminOrders')
 		{
 			if (version_compare(_PS_VERSION_, '1.5', '>') == true)
 				$this->context->controller->addCSS($this->_path.'views/css/admin-order.css');
@@ -837,7 +837,8 @@ class ShopGate extends PaymentModule
 
 		/** @var CarrierCore $carrierModel */
 		$carrierModel      = new Carrier();
-		$carrierCollection = $carrierModel->getCarriers($this->context->language->id);
+		$allCarriers = (defined('ALL_CARRIERS') ? ALL_CARRIERS : (defined('Carrier::ALL_CARRIERS') ? Carrier::ALL_CARRIERS : null));
+		$carrierCollection = $carrierModel->getCarriers($this->context->language->id, true, false, false, null, $allCarriers);
 
 		$settingKeys = array (
 			'SHOPGATE_SHIPPING_SERVICE',
@@ -897,7 +898,7 @@ class ShopGate extends PaymentModule
 		}
 
 		$langs = array ();
-		foreach (Language::getLanguages() as $id => $l)
+		foreach (Language::getLanguages() as $l)
 			$langs[Tools::strtoupper($l['iso_code'])] = $l['name'];
 
 		$servers = array (
@@ -960,7 +961,7 @@ class ShopGate extends PaymentModule
 
 		/** @var ShopCore $shopModel */
 		$shopModel = $this->context->shop;
-		if ($shopModel->domain)
+		if (isset($shopModel->domain))
 		{
 			if ($shopModel->domain)
 				$api_url = $api_url.$shopModel->domain;

@@ -44,7 +44,7 @@ class ShopgateConfigPresta extends ShopgateConfig
 		$this->enable_get_customer            = 1;
 		$this->enable_get_items_csv           = 1;
 		$this->enable_get_categories_csv      = 1;
-		$this->enable_get_reviews_csv         = 0;
+		$this->enable_get_reviews_csv         = 1;
 		$this->enable_get_pages_csv           = 0;
 		$this->enable_get_log_file            = 1;
 		$this->enable_set_settings            = 1;
@@ -56,7 +56,8 @@ class ShopgateConfigPresta extends ShopgateConfig
 		$this->enable_get_settings            = 1;
 		$this->enable_get_items               = 1;
 		$this->enable_get_categories          = 1;
-		$this->enable_get_reviews             = 0;
+		$this->enable_get_reviews             = 1;
+		$this->enable_register_customer       = 1;
 
 		// initialize plugin specific stuff
 		$this->use_stock = 1;
@@ -169,7 +170,7 @@ class ShopgateConfigPresta extends ShopgateConfig
 			/**
 			 * do nothing // prestashop validator
 			 */
-			$exception = $e;
+			unset($e);
 		}
 	}
 
