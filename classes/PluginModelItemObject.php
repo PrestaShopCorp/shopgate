@@ -436,10 +436,19 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 
 		if ($stockItem->getIsSaleable())
 		{
-			/**
-			 * setAvailabilityText
-			 */
-			$stockItem->setAvailabilityText($this->item->available_now);
+			if($stockItem->getStockQuantity() <= 0
+				&& Configuration::get('PS_STOCK_MANAGEMENT')
+				&& Product::isAvailableWhenOutOfStock($this->item->out_of_stock)) {
+
+				$stockItem->setAvailabilityText($this->item->available_later);
+
+			} else {
+				/**
+				 * setAvailabilityText
+				 */
+				$stockItem->setAvailabilityText($this->item->available_now);
+			}
+
 		}
 
 		if (version_compare(_PS_VERSION_, '1.4.0.0', '>='))
@@ -769,10 +778,22 @@ class PluginModelItemObject extends Shopgate_Model_Catalog_Product
 
 				if ($stockItem->getIsSaleable())
 				{
-					/**
-					 * setAvailabilityText
-					 */
-					$stockItem->setAvailabilityText($this->item->available_now);
+
+					if($stockItem->getStockQuantity() <= 0
+						&& Configuration::get('PS_STOCK_MANAGEMENT')
+						&& Product::isAvailableWhenOutOfStock($this->item->out_of_stock))
+					{
+						/**
+						 * setAvailabilityText
+						 */
+						$stockItem->setAvailabilityText($this->item->available_later);
+					} else {
+						/**
+						 * setAvailabilityText
+						 */
+						$stockItem->setAvailabilityText($this->item->available_now);
+					}
+
 				}
 
 				$childItemItem->setStock($stockItem);

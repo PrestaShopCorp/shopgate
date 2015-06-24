@@ -105,16 +105,38 @@ class PSShopgateOrder extends ObjectModel
 
 	public static function instanceByCartId($id_cart = 0)
 	{
-		return new PSShopgateOrder($id_cart, 'id_cart');
+		return new PSShopgateOrder(self::getValueByKey('id_cart', $id_cart));
 	}
 
 	public static function instanceByOrderId($id_order = 0)
 	{
-		return new PSShopgateOrder($id_order, 'id_order');
+		return new PSShopgateOrder(self::getValueByKey('id_order', $id_order));
 	}
 
 	public static function instanceByOrderNumber($order_number = 0)
 	{
-		return new PSShopgateOrder($order_number, 'order_number');
+		return new PSShopgateOrder(self::getValueByKey('order_number', $order_number));
+	}
+
+	/**
+	 * returns the id by key an value
+	 *
+	 * @param string $key
+	 * @param mixed $value
+	 *
+	 * @return mixed
+	 */
+	protected static function getValueByKey($key, $value)
+	{
+		$query = sprintf(
+			'SELECT %s FROM %s%s WHERE %s = "%s"',
+			self::$definition['primary'],
+			_DB_PREFIX_,
+			self::$definition['table'],
+			$key,
+			$value
+			);
+
+		return Db::getInstance()->getValue($query);
 	}
 }

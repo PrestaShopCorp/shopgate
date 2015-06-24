@@ -23,7 +23,7 @@ if (!defined('_PS_VERSION_'))
 	//Translations
 	$this->l('Shopgate order ID:');
 */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.37');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.38');
 define('SHOPGATE_DIR', _PS_MODULE_DIR_.'shopgate/');
 
 require_once(SHOPGATE_DIR.'vendors/shopgate_library/shopgate.php');
@@ -68,7 +68,7 @@ class ShopGate extends PaymentModule
 		else
 			$this->tab = 'mobile';
 
-		$this->version    = '2.9.37';
+		$this->version    = SHOPGATE_PLUGIN_VERSION;
 		$this->author     = 'Shopgate';
 		$this->module_key = '';
 
@@ -116,6 +116,7 @@ class ShopGate extends PaymentModule
 		$carrier->is_module         = 1;
 		$carrier->deleted           = 1;
 		$carrier->shipping_external = 1;
+		$carrier->id_tax_rules_group = 0;
 
 		// 			if(version_compare(_PS_VERSION_, '1.4.4.0', '<') && version_compare(_PS_VERSION_, '1.4.2.5', '>=')){
 		// 				// fix a bug in Prestashop before version 1.4.4.0 classes/cart.php function isCarrierInRange() range behavior

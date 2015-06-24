@@ -182,6 +182,16 @@ class PSShopgatePlugin extends ShopgatePlugin
 		{
 			$address = new ShopgateAddress();
 
+			/**
+			 * prepare country and state
+			 */
+
+			/** @var CountryCore  $country */
+			$country = new Country($a['id_country']);
+
+			/** @var StateCore $state */
+			$state = new StateCore($a['id_state']);
+
 			$address->setId($a['id_address']);
 			$address->setFirstName($a['firstname']);
 			$address->setLastName($a['lastname']);
@@ -190,8 +200,16 @@ class PSShopgatePlugin extends ShopgatePlugin
 			$address->setStreet2($a['address2']);
 			$address->setCity($a['city']);
 			$address->setZipcode($a['postcode']);
-			$address->setCountry($a['country']);
-			$address->setState($a['state']);
+			$address->setCountry($country->iso_code);
+			$address->setState(
+				$state->iso_code
+					? sprintf(
+						'%s-%s',
+						$country->iso_code,
+						$state->iso_code
+					)
+					: null
+			);
 			$address->setPhone($a['phone']);
 			$address->setMobile($a['phone_mobile']);
 
@@ -380,17 +398,12 @@ class PSShopgatePlugin extends ShopgatePlugin
 		//Get invoice and delivery addresses
 		$invoiceAddress  = $this->getPSAddress($customer, $order->getInvoiceAddress());
 		
-		if ($order->getInvoiceAddress()->equals($order->getDeliveryAddress()))
-		{
-			$deliveryAddress = NULL;
-			$addressId = $invoiceAddress->id;
-		}
-		else
-		{
-			$deliveryAddress = $this->getPSAddress($customer, $order->getDeliveryAddress());
-			$addressId = $deliveryAddress->id;
-		}
-
+		$deliveryAddress = ($order->getInvoiceAddress()->equals($order->getDeliveryAddress())) 
+			?
+			$invoiceAddress
+			:
+			$this->getPSAddress($customer, $order->getDeliveryAddress());
+		
 		//Creating currency
 		$this->log('PS setting currency', ShopgateLogger::LOGTYPE_DEBUG);
 		$id_currency = $order->getCurrency() ? Currency::getIdByIsoCode($order->getCurrency()) : $this->id_currency;
@@ -402,8 +415,7 @@ class PSShopgatePlugin extends ShopgatePlugin
 		$cart                      = new Cart();
 		$cart->id_lang             = $this->id_lang;
 		$cart->id_currency         = $currency->id;
-		if(!empty($deliveryAddress))
-			$cart->id_address_delivery = $deliveryAddress->id;
+		$cart->id_address_delivery = $deliveryAddress->id;
 		$cart->id_address_invoice  = $invoiceAddress->id;
 		$cart->id_customer         = $customer->id;
 

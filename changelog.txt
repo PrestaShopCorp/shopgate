@@ -1,5 +1,9 @@
 '''Deutsch'''
 
+'''Version 2.9.38'''
+* Anzeige der Verfügbarkeit optimiert
+* Fix ShopgateOrder Funktionen
+
 '''Version 2.9.37'''
 * Funktion um Reviews zu exportieren für XML und CSV aktiviert
 * Kompatibilitätsproblem mit der shopgate_orders Tabelle in Prestashop >= 1.6.0.11 behoben
@@ -455,8 +459,11 @@
 
 
 
-
 '''English'''
+
+'''Version 2.9.38'''
+* Optimize item available view
+* Fixing ShogateOrder problems
 
 '''Version 2.9.37'''
 * added export methods for reviews - XML and CSV

@@ -364,7 +364,7 @@ class PSShopgateCheckCart
 		{
 			/** @var CarrierCore $carrierModel */
 			$carrierModel = new Carrier();
-			foreach ($carrierModel->getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), null, $this->_context->cart) as $carrier)
+			foreach ($carrierModel->getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), $this->_context->customer->getGroups(), $this->_context->cart) as $carrier)
 				if (Configuration::get('USE_MOBILE_CARRIER_'.$carrier['id_carrier']) != self::DEFAULT_CHECKBOX_DISABLED)
 					$this->_resultCarriers[] = $this->_createResultCarrier($carrier);
 		}
