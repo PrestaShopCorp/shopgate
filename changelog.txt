@@ -1,16 +1,5 @@
 '''Deutsch'''
 
-'''Version 2.9.40'''
-* der Export von Hauptkategorien geschieht jetzt entweder auf der Hauptebene oder als normale Kategorien (Konfigurationseinstellung)
-
-'''Version 2.9.39'''
-* Release des neuen überarbeiteten Plugins
-* Kompatibilität mit dem Modul eu_legal verbessert (Achtung: Dieser Eintrag bezieht sich noch auf die alte Version des Plugins)
-
-'''Version 2.9.38'''
-* Anzeige der Verfügbarkeit optimiert
-* Fix ShopgateOrder Funktionen
-
 '''Version 2.9.37'''
 * Funktion um Reviews zu exportieren für XML und CSV aktiviert
 * Kompatibilitätsproblem mit der shopgate_orders Tabelle in Prestashop >= 1.6.0.11 behoben
@@ -466,18 +455,8 @@
 
 
 
+
 '''English'''
-
-'''Version 2.9.40'''
-* root categories can now be exported either on top-level or simply as sub categories (configuration setting)
-
-'''Version 2.9.39'''
-* release of the new refactored plugin
-* improved compatibility with module eu_legal (Attention: This entry refers to the old version of the plugin)
-
-'''Version 2.9.38'''
-* Optimize item available view
-* Fixing ShogateOrder problems
 
 '''Version 2.9.37'''
 * added export methods for reviews - XML and CSV

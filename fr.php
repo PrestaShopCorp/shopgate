@@ -124,4 +124,3 @@ $_MODULE['<{shopgate}prestashop>configurations_46a6ea316a8e70e0dca38fe14c067641'
 $_MODULE['<{shopgate}prestashop>configurations_f16525381cfc0415eba02587566de1cb'] = 'Retransmission groupé';
 $_MODULE['<{shopgate}prestashop>configurations_3ac64dc4e3a75611f07817ad926dd963'] = 'Export des produits';
 $_MODULE['<{shopgate}prestashop>configurations_c9cc8cce247e49bae79f15173ce97354'] = 'Enregistrer';
-$_MODULE['<{shopgate}prestashop>configurations_60ac30664b378e80d3d5eceb60bc9ee9'] = 'Exportez la catégorie d\'accueil du plus haut niveau';

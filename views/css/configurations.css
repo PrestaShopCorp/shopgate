@@ -110,12 +110,14 @@
     font-weight: 600;
 }
 
-#shopgateTeaserContent {
-    margin-bottom: 20px;
+.nobootstrap .margin-form.second {
+    padding: 0 0 1em 50px;
 }
 
-.form-group .radio {
-    margin-left: 25px;
-    font-weight: normal;
+.shopgate-configuration input.api-url {
+    background-color: #EFEFEF
 }
 
+.shopgate-configuration .clear {
+    clear: both;
+}

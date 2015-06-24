@@ -15,438 +15,514 @@
  * @author    Shopgate GmbH, Schloßstraße 10, 35510 Butzbach <interfaces@shopgate.com>
  * @copyright Shopgate GmbH
  * @license   http://opensource.org/licenses/AFL-3.0 Academic Free License ("AFL"), in the version 3.0
- *
- * User: awesselburg
- * Date: 22.09.14
- * Time: 10:31
- * E-Mail: awesselburg <wesselburg@me.com>
  */
 
 if (!defined('_PS_VERSION_'))
 	exit;
-
-/**
- * define shopgate version
- */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.39');
-
-/**
- * define module dir
- */
+/*
+	//Translations
+	$this->l('Shopgate order ID:');
+*/
+define('SHOPGATE_PLUGIN_VERSION', '2.9.37');
 define('SHOPGATE_DIR', _PS_MODULE_DIR_.'shopgate/');
 
-/**
- * require classes
- */
 require_once(SHOPGATE_DIR.'vendors/shopgate_library/shopgate.php');
-require_once(SHOPGATE_DIR.'classes/Config.php');
-require_once(SHOPGATE_DIR.'classes/Settings.php');
-require_once(SHOPGATE_DIR.'classes/Plugin.php');
-require_once(SHOPGATE_DIR.'classes/Helper.php');
-require_once(SHOPGATE_DIR.'classes/Shipping.php');
-require_once(SHOPGATE_DIR.'classes/Payment.php');
-require_once(SHOPGATE_DIR.'classes/Order.php');
+require_once(SHOPGATE_DIR.'classes/PSShopgatePlugin.php');
+require_once(SHOPGATE_DIR.'classes/PSShopgateOrder.php');
+require_once(SHOPGATE_DIR.'classes/PSShopgateConfig.php');
+require_once(SHOPGATE_DIR.'classes/PluginModelItemObject.php');
+require_once(SHOPGATE_DIR.'classes/PluginModelCategoryObject.php');
+require_once(SHOPGATE_DIR.'classes/PSShopgateCheckCart.php');
+require_once(SHOPGATE_DIR.'classes/PluginModelReviewObject.php');
 
-/**
- * abstract
- */
-require_once(SHOPGATE_DIR.'classes/items/Abstract.php');
+#define('SHOPGATE_DEBUG', 1);
 
-/**
- * review
- */
-require_once(SHOPGATE_DIR.'classes/items/review/Review.php');
-require_once(SHOPGATE_DIR.'classes/items/review/export/Xml.php');
-
-/**
- * category
- */
-require_once(SHOPGATE_DIR.'classes/items/category/Category.php');
-require_once(SHOPGATE_DIR.'classes/items/category/export/Xml.php');
-
-/**
- * items
- */
-require_once(SHOPGATE_DIR.'classes/items/item/Item.php');
-require_once(SHOPGATE_DIR.'classes/items/item/export/Xml.php');
-
-/**
- * customer
- */
-require_once(SHOPGATE_DIR.'classes/items/customer/Customer.php');
-require_once(SHOPGATE_DIR.'classes/items/customer/export/Json.php');
-require_once(SHOPGATE_DIR.'classes/items/customer/import/Json.php');
-
-/**
- * order
- */
-require_once(SHOPGATE_DIR.'classes/items/order/Order.php');
-require_once(SHOPGATE_DIR.'classes/items/order/input/Json.php');
-
-/**
- * cart
- */
-require_once(SHOPGATE_DIR.'classes/items/cart/Cart.php');
-require_once(SHOPGATE_DIR.'classes/items/cart/export/Json.php');
-
-
-/**
- * Class ShopGate
- */
 class ShopGate extends PaymentModule
 {
-	/**
-	 * install sql file
-	 */
-	const INSTALL_SQL_FILE = '/setup/install.sql';
+	private $shopgate_trans = array ();
+	private $configurations = array (
+		'SHOPGATE_CARRIER_ID'             => 1,
+		'PS_OS_SHOPGATE'                  => 0,
+		'SHOPGATE_LANGUAGE_ID'            => 0,
+		'SHOPGATE_SHIPPING_SERVICE'       => 'OTHER',
+		'SHOPGATE_MIN_QUANTITY_CHECK'     => 0,
+		'SHOPGATE_OUT_OF_STOCK_CHECK'     => 0,
+		'SHOPGATE_PRODUCT_DESCRIPTION'    => self::PRODUCT_EXPORT_DESCRIPTION,
+		'SHOPGATE_SUBSCRIBE_NEWSLETTER'   => 0,
+		'SHOPGATE_EXPORT_ROOT_CATEGORIES' => 0,
+		'SHOPGATE_EXPORT_PRICE_TYPE'      => Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET
+	);
 
-	/** @var  ShopgateShipping */
-	protected $shopgateShippingModel;
+	const PRODUCT_EXPORT_DESCRIPTION = 'DESCRIPTION';
+	const PRODUCT_EXPORT_SHORT_DESCRIPTION = 'SHORT';
+	const PRODUCT_EXPORT_BOTH_DESCRIPTIONS = 'BOTH';
 
-	/** @var  ShopgatePayment */
-	protected $shopgatePaymentModel;
+	private $shipping_service_list = array ();
+	private $product_export_descriptions = array ();
 
-	/** @var  array */
-	protected $configurations;
-
-	/**
-	 * init settings
-	 */
 	public function __construct()
 	{
-		$this->bootstrap = true;
-
-		/**
-		 * fill models
-		 */
-		$this->shopgateShippingModel = new ShopgateShipping($this);
-		$this->shopgatePaymentModel = new ShopgatePayment($this);
-
 		$this->name = 'shopgate';
 		if (version_compare(_PS_VERSION_, '1.5.0.0', '<'))
 			$this->tab = 'market_place';
 		else
 			$this->tab = 'mobile';
 
-		$this->version = '2.9.39';
-		$this->author = 'Shopgate';
+		$this->version    = '2.9.37';
+		$this->author     = 'Shopgate';
 		$this->module_key = '';
 
 		parent::__construct();
 
 		$this->displayName = $this->l('Shopgate');
 		$this->description = $this->l('Sell your products with your individual app and a website optimized for mobile devices.');
-		$this->ps_versions_compliancy = array('min' => '1.4', 'max' => '1.6.99.99');
-	}
 
-	/**
-	 * install
-	 *
-	 * @return bool
-	 */
-	public function install()
-	{
-		/**
-		 * hooks
-		 */
-		$_registerHooks = array(
-			'header',
-			'adminOrder',
-			'updateOrderStatus',
-			'displayMobileHeader'
-		);
-		
-		if (version_compare(_PS_VERSION_, '1.5.0.0', '>='))
-			$_registerHooks[] = 'displayMobileHeader';
-		
-		/**
-		 * enable debug
-		 */
-		ShopgateLogger::getInstance()->enableDebug();
-
-		/**
-		 * set default settings
-		 */
-		$this->configurations = ShopgateSettings::getDefaultSettings();
-
-		/**
-		 * check parent install
-		 */
-		ShopGate::log('INSTALLATION - calling parent::install()', ShopgateLogger::LOGTYPE_DEBUG);
-		$result = parent::install();
-		if (!$result)
-		{
-			ShopGate::log('parent::install() failed; return value: '
-				.var_export($result, true), ShopgateLogger::LOGTYPE_ERROR);
-			return false;
-		}
-
-		/**
-		 * check installed php extensions
-		 */
-		$missingExtensions = ShopgateHelper::checkLoadedExtensions(
-			array('curl')
+		//delivery service list
+		$this->shipping_service_list = array
+		(
+			'OTHER'      => $this->l('Other'),
+			'DHL'        => $this->l('DHL'),
+			'DHLEXPRESS' => $this->l('DHL Express'),
+			'DP'         => $this->l('Deutsche Post'),
+			'DPD'        => $this->l('DPD'),
+			'FEDEX'      => $this->l('FedEx'),
+			'GLS'        => $this->l('GLS'),
+			'HLG'        => $this->l('Hermes'),
+			'TNT'        => $this->l('TNT'),
+			'TOF'        => $this->l('trans-o-flex'),
+			'UPS'        => $this->l('UPS'),
+			'LAPOSTE'    => $this->l('LA POSTE'),
 		);
 
-		if (count($missingExtensions) > 0)
-		{
-			foreach ($missingExtensions as $missingExtension)
-				ShopGate::log(
-					sprintf(
-						'Installation failed. %s is not installed or loaded.',
-						$missingExtension
-					),
-				ShopgateLogger::LOGTYPE_ERROR);
-			return false;
-		}
-
-		/**
-		 * register hooks
-		 */
-		ShopGate::log('INSTALLATION - registering hookpoints', ShopgateLogger::LOGTYPE_DEBUG);
-		
-		foreach ($_registerHooks as $hook)
-		{
-			ShopGate::log(
-				sprintf('INSTALLATION - registering hookpoint %s', $hook),
-				ShopgateLogger::LOGTYPE_DEBUG);
-
-			$result = $this->registerHook($hook);
-			if (!$result)
-			{
-				ShopGate::log(
-					sprintf('$this->registerHook("%s") failed; return value: %s', $hook, var_export($result, true)),
-					ShopgateLogger::LOGTYPE_ERROR);
-				return false;
-			}
-		}
-
-		/**
-		 * install data
-		 */
-		ShopGate::log('INSTALLATION - fetching database object', ShopgateLogger::LOGTYPE_DEBUG);
-
-		/**
-		 * install tables
-		 */
-		if (!$this->installTables())
-			return false;
-
-		/**
-		 * install shopgate carrier
-		 */
-		$this->shopgateShippingModel->createShopgateCarrier();
-
-		/**
-		 * order states
-		 */
-		ShopGate::log('INSTALLATION - adding order states', ShopgateLogger::LOGTYPE_DEBUG);
-		$this->addOrderState('PS_OS_SHOPGATE', $this->l('Shipping blocked (Shopgate)'));
-
-		/**
-		 * save default configuration
-		 */
-		ShopGate::log('INSTALLATION - setting config values', ShopgateLogger::LOGTYPE_DEBUG);
-		$this->configurations['SG_LANGUAGE_ID'] = Configuration::get('PS_LANG_DEFAULT');
-
-		foreach ($this->configurations as $name => $value)
-		{
-			if (!Configuration::updateValue($name, $value))
-			{
-				ShopGate::log(
-					sprintf(
-						'installation failed: unable to save configuration setting "%s" with value "%s"',
-						var_export($name, true),
-						var_export($value, true)
-					),
-					ShopgateLogger::LOGTYPE_ERROR
-				);
-
-				return false;
-			}
-		}
-
-		/** @todo register plugin */
-
-		ShopGate::log('INSTALLATION - installation was successful', ShopgateLogger::LOGTYPE_DEBUG);
-
-		return true;
-	}
-
-	/**
-	 * @return bool
-	 */
-	protected function installTables()
-	{
-		$db = Db::getInstance(true);
-
-		if (!file_exists(dirname(__FILE__).'/'.self::INSTALL_SQL_FILE))
-			return (false);
-		else if (!$sql = version_compare(_PS_VERSION_, '1.4.0.10', '>=') ? Tools::file_get_contents(dirname(__FILE__).'/'.self::INSTALL_SQL_FILE) : file_get_contents(dirname(__FILE__).'/'.self::INSTALL_SQL_FILE))
-			return (false);
-
-		$sql = str_replace(array('PREFIX_', 'ENGINE_TYPE'), array(_DB_PREFIX_, _MYSQL_ENGINE_), $sql);
-		$sql = preg_split("/;\s*[\r\n]+/", $sql);
-
-		ShopGate::log('INSTALLATION - install tables', ShopgateLogger::LOGTYPE_DEBUG);
-
-		foreach ($sql as $query)
-			if ($query)
-				if (!$db::getInstance()->execute(trim($query)))
-					return false;
-
-		return true;
-
-	}
-
-	/**
-	 * uninstall
-	 *
-	 * @return bool
-	 */
-	public function uninstall()
-	{
-		if (!parent::uninstall())
-			return false;
-
-		/**
-		 * remove carrier
-		 */
-		if ($shopgateCarrierId = Db::getInstance()->getValue('SELECT `id_carrier` FROM `'._DB_PREFIX_.'carrier` WHERE `name` = "Shopgate"'))
-		{
-			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'delivery` WHERE `id_carrier` = '.$shopgateCarrierId);
-			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'range_price` WHERE `id_carrier` = '.$shopgateCarrierId);
-			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'range_weight` WHERE `id_carrier` = '.$shopgateCarrierId);
-			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'carrier_lang` WHERE `id_carrier` = '.$shopgateCarrierId);
-			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'carrier_zone` WHERE `id_carrier` = '.$shopgateCarrierId);
-		}
-
-		return true;
-	}
-
-	/**
-	 * @return mixed
-	 */
-	public function getContent()
-	{
-		include_once dirname(__FILE__).'/../backward_compatibility/backward.php';
-		
-		/** @var ShopgateConfigPrestashop $shopgateConfig */
-		$shopgateConfig = new ShopgateConfigPrestashop();
-
-		/** @var mixed $errorMessage */
-		$errorMessage = false;
-
-		/** @var LanguageCore $lang */
-		$lang = new Language((int)Configuration::get('PS_LANG_DEFAULT'));
-
-		/**
-		 * save on submit
-		 */
-		if (Tools::isSubmit('saveConfigurations'))
-		{
-			$configs = Tools::getValue('configs', array());
-
-			/**
-			 * set and store configs
-			 */
-			foreach ($configs as $key => $value)
-				$shopgateConfig->setByKey($key, $value);
-
-
-			try {
-				foreach ($shopgateConfig->initFolders() as $key => $value)
-					$shopgateConfig->setByKey($key, $value);
-				$shopgateConfig->store();
-			} catch (ShopgateLibraryException $e) {
-				$errorMessage = $e->getAdditionalInformation();
-			}
-
-			/**
-			 * store settings
-			 */
-			foreach (Tools::getValue('settings', array()) as $key => $value)
-				if (in_array($key, ShopgateSettings::getSettingKeys()))
-				{
-					if (is_array($value))
-						$value = base64_encode(serialize($value));
-					Configuration::updateValue($key, htmlentities($value, ENT_QUOTES));
-				}
-		}
-
-		$languages = array();
-		foreach (Language::getLanguages() as $l)
-			$languages[$l['iso_code']] = $l['name'];
-
-		$orderStates = array();
-		foreach (OrderStateCore::getOrderStates($lang->id) as $key => $orderState)
-			$orderStates[$orderState['id_order_state']] = $orderState['name'];
-
-		$newOrderStateMapping = array();
-		foreach ($this->shopgatePaymentModel->getPaymentMethods() as $key => $method)
-			$newOrderStateMapping[ShopgateSettings::getOrderStateKey($key)] = $method;
-
-		/**
-		 * prepare css
-		 */
-		if (version_compare(_PS_VERSION_, '1.6', '<'))
-			$configCss = 'configurations_without_bs.css';
-		else
-			$configCss = 'configurations.css';
-
-
-		/**
-		 * prepare carrier list
-		 */
-		$carrierList = Carrier::getCarriers($lang->id, true, false, false, null, Carrier::ALL_CARRIERS);
-		$shopgateCarrier = new Carrier(Configuration::get('SG_CARRIER_ID'), $lang->id);
-		array_push($carrierList, array('name' => $shopgateCarrier->name, 'id_carrier' => $shopgateCarrier->id));
-
-		/**
-		 * price types
-		 */
-		$priceTypes = array (
-			Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET   => $this->l('Net'),
-			Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_GROSS => $this->l('Gross')
+		$this->product_export_descriptions = array
+		(
+			self::PRODUCT_EXPORT_DESCRIPTION       => $this->l('Description'),
+			self::PRODUCT_EXPORT_SHORT_DESCRIPTION => $this->l('Short Description'),
+			self::PRODUCT_EXPORT_BOTH_DESCRIPTIONS => $this->l('Short Description + Description'),
 		);
 
-		/**
-		 * fill smarty params
-		 */
-		$this->context->smarty->assign('error_message', $errorMessage);
-		$this->context->smarty->assign('settings', Configuration::getMultiple(ShopgateSettings::getSettingKeys()));
-		$this->context->smarty->assign('configs', $shopgateConfig->toArray());
-		$this->context->smarty->assign('mod_dir', $this->_path);
-		$this->context->smarty->assign('video_url', ShopgateHelper::getVideoLink($this->context));
-		$this->context->smarty->assign('offer_url', ShopgateHelper::getOfferLink($this->context));
-		$this->context->smarty->assign('api_url', ShopgateHelper::getApiUrl($this->context));
-		$this->context->smarty->assign('currencies', Currency::getCurrencies());
-		$this->context->smarty->assign('servers', ShopgateHelper::getEnvironments($this));
-		$this->context->smarty->assign('shipping_service_list', $this->shopgateShippingModel->getShippingServiceList());
-		$this->context->smarty->assign('product_export_descriptions', ShopgateSettings::getProductExportDescriptionsArray($this));
-		$this->context->smarty->assign('languages', $languages);
-		$this->context->smarty->assign('carrier_list', $carrierList);
-		$this->context->smarty->assign('shippingModel', $this->shopgateShippingModel);
-		$this->context->smarty->assign('configCss', $configCss);
-		$this->context->smarty->assign('product_export_price_type', $priceTypes);
-		
-		return $this->display(__FILE__, 'views/templates/admin/configurations.tpl');
+		$this->shopgate_trans = array (
+			'Bankwire'         => $this->l('Bankwire'),
+			'Cash on Delivery' => $this->l('Cash on Delivery'),
+			'PayPal'           => $this->l('PayPal'),
+			'Mobile Payment'   => $this->l('Mobile Payment'),
+			'Shopgate'         => $this->l('Shopgate')
+		);
 	}
 
-	/**
-	 * @param $message
-	 * @param string $type
-	 */
-	public static function log($message, $type = ShopgateLogger::LOGTYPE_ERROR)
+	private function setCarrier(Carrier $carrier)
+	{
+		$carrier->name              = 'Shopgate';
+		$carrier->is_module         = 1;
+		$carrier->deleted           = 1;
+		$carrier->shipping_external = 1;
+
+		// 			if(version_compare(_PS_VERSION_, '1.4.4.0', '<') && version_compare(_PS_VERSION_, '1.4.2.5', '>=')){
+		// 				// fix a bug in Prestashop before version 1.4.4.0 classes/cart.php function isCarrierInRange() range behavior
+		// 				$carrier->shipping_method = Carrier::SHIPPING_METHOD_FREE;
+		// 			}
+		if (version_compare(_PS_VERSION_, '1.4.0.1', '<='))
+		{
+			// calculating shipping costs in Prestashop before version 1.4.4.2
+			//$carrier->shipping_method = Carrier::SHIPPING_METHOD_PRICE;
+			$carrier->range_behavior    = 1;
+			$carrier->active            = 1;
+			$carrier->shipping_handling = 0;
+		}
+
+		$carrier->external_module_name = 'shopgate';
+		foreach (Language::getLanguages() as $language)
+			$carrier->delay[$language['id_lang']] = $this->l('Depends on Shopgate selected carrier');
+	}
+
+
+	private function log($message, $type)
 	{
 		ShopgateLogger::getInstance()->log($message, $type);
 	}
 
-	/**
-	 * @param $state
-	 * @param $name
-	 * @return bool
-	 */
+	public function install()
+	{
+		ShopgateLogger::getInstance()->enableDebug();
+
+		$this->log('INSTALLATION - checking for cURL', ShopgateLogger::LOGTYPE_DEBUG);
+
+		if (!in_array('curl', get_loaded_extensions()))
+		{
+			$this->log('Installation failed. cURL is not installed or loaded.', ShopgateLogger::LOGTYPE_ERROR);
+
+			return false;
+		}
+
+		$this->log('INSTALLATION - calling parent::install()', ShopgateLogger::LOGTYPE_DEBUG);
+		$result = parent::install();
+		if (!$result)
+		{
+			$this->log('parent::install() failed; return value: '.var_export($result, true), ShopgateLogger::LOGTYPE_ERROR);
+
+			return false;
+		}
+
+		$this->log('INSTALLATION - registering hookpoints', ShopgateLogger::LOGTYPE_DEBUG);
+		$hooks = array ('header', 'adminOrder', 'updateOrderStatus', 'backOfficeHeader');
+		foreach ($hooks as $hook)
+		{
+			$this->log('INSTALLATION - registering hookpoint "'.$hook.'"', ShopgateLogger::LOGTYPE_DEBUG);
+			$result = $this->registerHook($hook);
+			if (!$result)
+			{
+				$this->log('$this->registerHook("'.$hook.'") failed; return value: '.var_export($result, true), ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		// fix for 1.5.x.x there is already a mobile Template. redirect to Shopgate on this template
+		if (version_compare(_PS_VERSION_, '1.5.0.0', '>='))
+		{
+			$this->log('INSTALLATION - version is >= 1.5.0.0 - registering hookpoint "displayMobileHeader"', ShopgateLogger::LOGTYPE_DEBUG);
+			$result = $this->registerHook('displayMobileHeader');
+			if (!$result)
+			{
+				$this->log('$this->registerHook("displayMobileHeader") failed; return value: '.var_export($result, true), ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		// get ONE instance of the MySQLCore class and use the master database so PrestaShop doesn't get confused
+		$this->log('INSTALLATION - fetching database object', ShopgateLogger::LOGTYPE_DEBUG);
+		$db = Db::getInstance(true);
+
+		// install or update the database structure
+		$this->log('INSTALLATION - updating database', ShopgateLogger::LOGTYPE_DEBUG);
+		if (!$this->updateDatabase($db))
+		{
+			$this->log('installation failed - unable to update database', ShopgateLogger::LOGTYPE_ERROR);
+
+			return false;
+		}
+
+		// Create shopgate carrier if not exists
+		$this->log('INSTALLATION - fetching Shopgate carrier with statement ...', ShopgateLogger::LOGTYPE_DEBUG);
+		if (version_compare(_PS_VERSION_, '1.4.0.1', '<='))
+		{
+			$this->log('... for version <= 1.4.0.1 ...', ShopgateLogger::LOGTYPE_DEBUG);
+			$query = 'SELECT `id_carrier` FROM `'._DB_PREFIX_.'carrier` WHERE `name` = \'Shopgate\'';
+		}
+		else
+		{
+			$this->log('... for version > 1.4.0.1 ...', ShopgateLogger::LOGTYPE_DEBUG);
+			$query = 'SELECT `id_carrier` FROM `'._DB_PREFIX_.'carrier` WHERE `external_module_name` = \'shopgate\'';
+		}
+		$this->log('... '.$query, ShopgateLogger::LOGTYPE_DEBUG);
+		$id_carrier = (int)$db->getValue($query);
+
+		$this->log('INSTALLATION - creating carrier object with ID: '.var_export($id_carrier, true), ShopgateLogger::LOGTYPE_DEBUG);
+		$carrier = new Carrier($id_carrier);
+		$this->setCarrier($carrier);
+
+		if (!Validate::isLoadedObject($carrier))
+		{
+			$this->log('INSTALLATION - adding carrier', ShopgateLogger::LOGTYPE_DEBUG);
+			// add new carrier
+			if (!$carrier->add())
+			{
+				$this->log('installation failed: unable to add carrier.', ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+		else
+		{
+			$this->log('INSTALLATION - updating carrier', ShopgateLogger::LOGTYPE_DEBUG);
+			// update carrier
+			if (!$carrier->update())
+			{
+				$this->log('installation failed: unable to update carrier.', ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		if (version_compare(_PS_VERSION_, '1.4.0.1', '<='))
+		{
+			$this->log('INSTALLATION - checking carrier compatibility for version <= 1.4.0.1', ShopgateLogger::LOGTYPE_DEBUG);
+			// fix a bug in Prestashop before version 1.4.4.0 classes/cart.php function isCarrierInRange() range behavior
+			if (!$this->carrierCompatibility($carrier))
+			{
+				$this->log('installation failed: $this->carrierCompatibility returned false.', ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		// Creates new order states
+		$this->log('INSTALLATION - adding order states', ShopgateLogger::LOGTYPE_DEBUG);
+		$this->addOrderState('PS_OS_SHOPGATE', $this->l('Shipping blocked (Shopgate)'));
+
+		// Save default configurations
+		$this->log('INSTALLATION - setting config values', ShopgateLogger::LOGTYPE_DEBUG);
+		$this->configurations['SHOPGATE_CARRIER_ID']  = $carrier->id;
+		$this->configurations['SHOPGATE_LANGUAGE_ID'] = Configuration::get('PS_LANG_DEFAULT');
+
+		$this->log('INSTALLATION - saving configuration values', ShopgateLogger::LOGTYPE_DEBUG);
+		foreach ($this->configurations as $name => $value)
+		{
+			if (!Configuration::updateValue($name, $value))
+			{
+				$this->log('installation failed: unable to save configuration setting "'.var_export($name, true).'" with value "'.var_export($value, true).'".', ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
+		$shopgateConfig = new ShopgateConfigPresta(
+			is_array($storedConfig) ?
+				$storedConfig :
+				array ()
+
+		);
+		$shopgateConfig->registerPlugin();
+
+		$this->log('INSTALLATION - installation was successful', ShopgateLogger::LOGTYPE_DEBUG);
+
+		return true;
+	}
+
+	private function updateDatabase($db)
+	{
+		$sql_table = '
+		CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'shopgate_order`
+		(
+			`id_shopgate_order` int(11) NOT NULL AUTO_INCREMENT,
+			`id_cart` int(11) NOT NULL DEFAULT \'0\',
+			`id_order` int(11) NOT NULL DEFAULT \'0\',
+			`order_number` varchar(16) NOT NULL,
+			`shop_number` varchar(16) NULL DEFAULT NULL,
+			`tracking_number` varchar(32) NOT NULL DEFAULT \'\',
+			`shipping_service` varchar(16) NOT NULL DEFAULT \'OTHER\',
+			`shipping_cost` decimal(17,2) NOT NULL DEFAULT \'0.00\',
+			`comments` text NULL DEFAULT NULL,
+			PRIMARY KEY (`id_shopgate_order`),
+			UNIQUE KEY `order_number` (`order_number`)
+		)
+		ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+
+		$this->log('INSTALLATION - adding table "shopgate_order" to database', ShopgateLogger::LOGTYPE_DEBUG);
+		if (!$db->Execute($sql_table))
+		{
+			$this->log('installation failed: unable to add table "shopgate_order" to database. MySQL says: '.var_export($db->getMsgError(), true), ShopgateLogger::LOGTYPE_ERROR);
+
+			return false;
+		}
+
+		$this->log('installation after first query', ShopgateLogger::LOGTYPE_ACCESS);
+
+		// Update table with new fields if not existing yet
+		$this->log('INSTALLATION - checking for field "comments" inside table "shopgate_order"', ShopgateLogger::LOGTYPE_DEBUG);
+		$db->Execute('SHOW COLUMNS FROM `'._DB_PREFIX_.'shopgate_order` LIKE \'comments\';');
+		if (!$db->NumRows())
+		{
+			$this->log('INSTALLATION - creating field "comments" inside table "shopgate_order"', ShopgateLogger::LOGTYPE_DEBUG);
+			if ($db->Execute('ALTER TABLE `'._DB_PREFIX_.'shopgate_order` ADD `comments` text NULL DEFAULT NULL AFTER `shipping_cost`;') === false)
+			{
+				$this->log('installation failed: unable to add field "comments" to table "shopgate_order". MySQL says: '.var_export($db->getMsgError(), true), ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		$this->log('INSTALLATION - checking for field "shop_number" inside table "shopgate_order"', ShopgateLogger::LOGTYPE_DEBUG);
+		$db->Execute('SHOW COLUMNS FROM `'._DB_PREFIX_.'shopgate_order` LIKE \'shop_number\';');
+		if (!$db->NumRows())
+		{
+			$this->log('INSTALLATION - creating field "shop_number" inside table "shopgate_order"', ShopgateLogger::LOGTYPE_DEBUG);
+			if ($db->Execute('ALTER TABLE `'._DB_PREFIX_.'shopgate_order` ADD `shop_number` varchar(16) NULL DEFAULT NULL AFTER `shipping_cost`;') === false)
+			{
+				$this->log('installation failed: unable to add field "shop_number" to table "shopgate_order". MySQL says: '.var_export($db->getMsgError(), true), ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		$this->log('INSTALLATION - database updates have been performed successfully', ShopgateLogger::LOGTYPE_DEBUG);
+
+		return true;
+	}
+
+	private function carrierCompatibility($carrier)
+	{
+		// fix a bug in Prestashop before version 1.4.4.0 classes/cart.php function isCarrierInRange() range behavior
+		$this->log('INSTALLATION - checking carrier compatibility; getting price range', ShopgateLogger::LOGTYPE_DEBUG);
+		$rangePrices = RangePrice::getRanges($carrier->id);
+
+		if (empty($rangePrices))
+		{
+			$this->log('INSTALLATION - price range was empty, creating new one', ShopgateLogger::LOGTYPE_DEBUG);
+			$rangePrice             = new RangePrice();
+			$rangePrice->id_carrier = $carrier->id;
+			$rangePrice->delimiter1 = 0.0;
+			$rangePrice->delimiter2 = 1000000.0;
+
+			$this->log('INSTALLATION - adding price range', ShopgateLogger::LOGTYPE_DEBUG);
+			if (!$rangePrice->add())
+			{
+				$this->log('installation failed: unable to add price range.', ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+		else
+		{
+			$this->log('INSTALLATION - price range was found', ShopgateLogger::LOGTYPE_DEBUG);
+			$rangePrice = new RangeWeight($rangePrices[0]['id_range_price']);
+		}
+
+		$this->log('INSTALLATION - getting weight range', ShopgateLogger::LOGTYPE_DEBUG);
+		$rangeWeights = RangeWeight::getRanges($carrier->id);
+
+		if (empty($rangeWeights))
+		{
+			$this->log('INSTALLATION - weight range was empty, creating new one', ShopgateLogger::LOGTYPE_DEBUG);
+			$rangeWeight             = new RangeWeight();
+			$rangeWeight->id_carrier = $carrier->id;
+			$rangeWeight->delimiter1 = 0.0;
+			$rangeWeight->delimiter2 = 1000000.0;
+
+			if (!$rangeWeight->add())
+			{
+				$this->log('installation failed: unable to weight price range.', ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+		else
+		{
+			$this->log('INSTALLATION - weight range was found', ShopgateLogger::LOGTYPE_DEBUG);
+			$rangeWeight = new RangeWeight($rangeWeights[0]['id_range_weight']);
+		}
+
+		// Zones
+		$this->log('INSTALLATION - getting zones', ShopgateLogger::LOGTYPE_DEBUG);
+		$zones = Zone::getZones();
+
+		foreach ($zones as $zone)
+			$carrier->addZone($zone['id_zone']);
+
+		// create for each zone delivery options
+		$this->log('INSTALLATION - creating delivery options for zones', ShopgateLogger::LOGTYPE_DEBUG);
+		foreach ($zones as $zone)
+		{
+			$this->log('INSTALLATION - creating delivery options by weight for zone '.var_export($zone, true), ShopgateLogger::LOGTYPE_DEBUG);
+			$deliveryRangeWeight                  = new Delivery();
+			$deliveryRangeWeight->id_carrier      = $carrier->id;
+			$deliveryRangeWeight->id_range_weight = $rangeWeight->id;
+			$deliveryRangeWeight->id_range_price  = 0;
+			$deliveryRangeWeight->price           = 0;
+			$deliveryRangeWeight->id_zone         = $zone['id_zone'];
+
+			if (!$deliveryRangeWeight->add(true, true))
+			{
+				$this->log('installation failed: unable to create delivery options by weight for zone '.var_export($zone, true), ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+
+			$this->log('INSTALLATION - creating delivery options by price for zone '.var_export($zone, true), ShopgateLogger::LOGTYPE_DEBUG);
+			$deliveryRangePrice                  = new Delivery();
+			$deliveryRangePrice->id_carrier      = $carrier->id;
+			$deliveryRangePrice->id_range_price  = $rangePrice->id;
+			$deliveryRangePrice->id_range_weight = 0;
+			$deliveryRangePrice->price           = 0;
+			$deliveryRangePrice->id_zone         = $zone['id_zone'];
+
+			if (!$deliveryRangePrice->add(true, true))
+			{
+				$this->log('installation failed: unable to create delivery options by price for zone '.var_export($zone, true), ShopgateLogger::LOGTYPE_ERROR);
+
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	public function uninstall()
+	{
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
+		$shopgateConfig = new ShopgateConfigPresta(
+			is_array($storedConfig) ?
+				$storedConfig :
+				array ()
+
+		);
+
+		$carrier = Db::getInstance()->ExecuteS('SELECT `id_carrier` FROM `'._DB_PREFIX_.'carrier` WHERE `name` = "Shopgate"');
+
+		if (!empty($carrier))
+		{
+			$shopgateCarrierId = (int)$carrier[0]['id_carrier'];
+
+			// delete delivery options
+			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'delivery` WHERE `id_carrier` = '.$shopgateCarrierId);
+
+			// delete price ranges
+			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'range_price` WHERE `id_carrier` = '.$shopgateCarrierId);
+
+			// delete weight ranges
+			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'range_weight` WHERE `id_carrier` = '.$shopgateCarrierId);
+
+			// delete carrier languages
+			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'carrier_lang` WHERE `id_carrier` = '.$shopgateCarrierId);
+
+			// delete carrier zones
+			Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'carrier_zone` WHERE `id_carrier` = '.$shopgateCarrierId);
+
+			// dont delete carrier
+			//$result = Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'carrier` WHERE `id_carrier` = '.$shopgateCarrierId);
+
+		}
+
+		// Disable shopgate api
+		$shopgateConfig->setShopIsActive(false);
+		try
+		{
+			$shopgateConfig->saveFile(array ('shop_is_active'));
+		} catch(ShopgateLibraryException $ex)
+		{
+			unset($ex);
+		}
+
+		// Keeps order states
+		unset($this->configurations['PS_OS_SHOPGATE']);
+
+		// Remove configurations
+		foreach ($this->configurations as $name => $value)
+		{
+			if (!Configuration::deleteByName($name))
+				return false;
+		}
+
+		// delete config from database
+		Configuration::deleteByName('SHOPGATE_CONFIG');
+
+		// delete myconfig.php
+		$shopgateConfig->deleteFile();
+
+		// Uninstall
+		return parent::uninstall();
+	}
+
+	public function getTranslation($string)
+	{
+		return array_key_exists($string, $this->shopgate_trans) ? $this->shopgate_trans[$string] : $string;
+	}
+
+
 	private function addOrderState($state, $name)
 	{
 		$orderState = new OrderState((int)Configuration::get($state));
@@ -465,92 +541,12 @@ class ShopGate extends PaymentModule
 				Tools::copy(dirname(__FILE__).'/logo.gif', dirname(__FILE__).'/../../img/os/'.(int)$orderState->id.'.gif');
 			else
 				copy(dirname(__FILE__).'/logo.gif', dirname(__FILE__).'/../../img/os/'.(int)$orderState->id.'.gif');
-
 		}
 
 		return ($this->configurations[$state] = $orderState->id);
 	}
 
-	/**
-	 * @return mixed|string
-	 */
-	public function hookHeader()
-	{
-		return ShopgateHelper::calculateRedirect();
-	}
 
-	/**
-	 * @return mixed|string
-	 */
-	public function hookDisplayMobileHeader()
-	{
-		return ShopgateHelper::calculateRedirect();
-	}
-
-	/**
-	 * @param $params
-	 * @return string
-	 */
-	public function hookAdminOrder($params)
-	{
-		include_once dirname(__FILE__).'/../backward_compatibility/backward.php';
-		$shopgateOrder = ShopgateOrderPrestashop::loadByOrderId($params['id_order']);
-		
-		if ($shopgateOrder->id)
-		{
-			/** @var ShopgateOrder $apiOrder */
-			$apiOrder 		= unserialize(base64_decode($shopgateOrder->shopgate_order));
-			
-			if (version_compare(_PS_VERSION_, '1.6.0.0', '<='))
-			{
-				$oldShopVersion = true;
-				$this->context->smarty->assign('image_enabled', $this->getAdminImageUrl('enabled.gif'));
-				$this->context->smarty->assign('image_disabled', $this->getAdminImageUrl('disabled.gif'));
-			}
-			else
-				$oldShopVersion = false;
-			
-			
-			$this->context->smarty->assign('isShopgateOrder', $shopgateOrder->id ? true : false);
-			$this->context->smarty->assign('shopgateOrder', $shopgateOrder);
-			$this->context->smarty->assign('apiOrder', $apiOrder);
-			$this->context->smarty->assign('modDir', $this->_path);
-			$this->context->smarty->assign('paymentModel', $this->shopgatePaymentModel);
-			$this->context->smarty->assign('shippingModel', $this->shopgateShippingModel);
-			$this->context->smarty->assign('mod_dir', $this->_path);
-			$this->context->smarty->assign('old_shop_version', $oldShopVersion);
-			
-			/**
-			 * prepare css / js
-			 */
-			if (version_compare(_PS_VERSION_, '1.6', '<'))
-			{
-				$orderCss 	= 'order_without_bs.css';
-				$requireJs 	= true;
-			}
-			else
-			{
-				$orderCss 	= 'order.css';
-				$requireJs 	= false;
-			}
-			
-			$this->context->smarty->assign('requireJs', $requireJs);
-			$this->context->smarty->assign('orderCss', $orderCss);
-			
-			/**
-			 * prepare show custom fields panel
-			 */
-			if (count($apiOrder->getCustomFields())
-				|| count($apiOrder->getInvoiceAddress()->getCustomFields())
-				|| count($apiOrder->getDeliveryAddress()->getCustomFields()))
-				$this->context->smarty->assign('showCustomFieldsPanel', true);
-			else
-				$this->context->smarty->assign('showCustomFieldsPanel', false);
-			
-			return $this->display(__FILE__, 'views/templates/admin/admin_order.tpl');
-		}
-	}
-	
 	/**
 	 * Carrie module methods
 	 *
@@ -561,71 +557,126 @@ class ShopGate extends PaymentModule
 	 */
 	public function getOrderShippingCost($params, $shipping_cost)
 	{
-		return (float)($this->getOrderShippingCostExternal($params, $shipping_cost) + $shipping_cost);
+		return (float)($this->getOrderShippingCostExternal($params) + $shipping_cost);
 	}
-	
+
 	public function getOrderShippingCostExternal($cart)
 	{
-		$shopgateOrder = ShopgateOrderPrestashop::loadByCartId($cart->id);
-		
+		$shopgateOrder = PSShopgateOrder::instanceByCartId($cart->id);
+
 		return Validate::isLoadedObject($shopgateOrder) ? $shopgateOrder->shipping_cost : 0;
 	}
-	
-	/**
-	 * returns the complete url to an admin image
-	 *
-	 * @param $imageFileName
-	 *
-	 * @return string
-	 */
-	private function getAdminImageUrl($imageFileName)
+
+	public function doMobileRedirect()
 	{
-		$adminImageUrl = (defined('_PS_SHOP_DOMAIN_') ? 'http://'._PS_SHOP_DOMAIN_ : _PS_BASE_URL_)._PS_ADMIN_IMG_.$imageFileName;
-		$adminImageLocalPath = _PS_IMG_DIR_.'admin/'.$imageFileName;
-		return file_exists($adminImageLocalPath) ? $adminImageUrl : '';
+		$indexFile = 'index.php';
+		if (version_compare(_PS_VERSION_, '1.4.1.0', '>=') && Configuration::get('PS_HOMEPAGE_PHP_SELF') !== false)
+			$indexFile = Configuration::get('PS_HOMEPAGE_PHP_SELF');
+
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
+		$shopgateConfig = new ShopgateConfigPresta(
+			is_array($storedConfig) ?
+				$storedConfig :
+				array ()
+
+		);
+
+		// instantiate and set up redirect class
+		$shopgateBuilder    = new ShopgateBuilder($shopgateConfig);
+		$shopgateRedirector = $shopgateBuilder->buildRedirect();
+
+		/* redirect logic */
+		$controller = Tools::getValue('controller');
+		if ($id_product = Tools::getValue('id_product', 0))
+		{
+			/** @var ProductCore $productItem */
+			$productItem        = new Product($id_product);
+			$defaultAttributeId = $productItem->getDefaultAttribute($id_product);
+			$shopgateJsHeader   = $shopgateRedirector->buildScriptItem(
+				sprintf('%d%s',
+					$id_product,
+					$defaultAttributeId ? '_'.$defaultAttributeId : ''
+				)
+			);
+		}
+		elseif ($id_category = Tools::getValue('id_category', 0))
+			$shopgateJsHeader = $shopgateRedirector->buildScriptCategory($id_category);
+		elseif (isset($_SERVER['SCRIPT_FILENAME']) && mb_strpos($_SERVER['SCRIPT_FILENAME'], $indexFile) !== false && (empty($controller) || $controller == 'index'))
+			$shopgateJsHeader = $shopgateRedirector->buildScriptShop();
+		else
+			$shopgateJsHeader = $shopgateRedirector->buildScriptDefault();
+
+		return $shopgateJsHeader;
 	}
 
+	public function hookHeader()
+	{
+		return $this->doMobileRedirect();
+	}
 
-	/**
-	 * This method gets called when the order status is changed in the admin area of the Prestashop backend
-	 * 
-	 * @param $params
-	 */
+	public function hookDisplayMobileHeader()
+	{
+		return $this->doMobileRedirect();
+	}
+
+	public function hookBackOfficeHeader()
+	{
+		$header = '';
+
+		if (Tools::getValue('controller') == 'AdminOrders')
+		{
+			if (version_compare(_PS_VERSION_, '1.5', '>') == true)
+				$this->context->controller->addCSS($this->_path.'views/css/admin-order.css');
+			else
+				$header .= '<link rel="stylesheet" href="'.$this->_path.'views/css/admin-order.css" type="text/css" />';
+		}
+
+		if (strcmp(Tools::getValue('configure'), $this->name) === 0)
+		{
+			if (version_compare(_PS_VERSION_, '1.5', '>') == true)
+				$this->context->controller->addCSS($this->_path.'views/css/configurations.css');
+			else
+				$header .= '<link rel="stylesheet" href="'.$this->_path.'views/css/configurations.css" type="text/css" />';
+		}
+
+		return $header;
+	}
+
 	public function hookUpdateOrderStatus($params)
 	{
-		$id_order      			= $params['id_order'];
-		$newOrderState 			= $params['newOrderStatus'];
-		$shopgateOrder 			= ShopgateOrderPrestashop::loadByOrderId($id_order);
+		$id_order      = $params['id_order'];
+		$orderState    = $params['newOrderStatus'];
+		$shopgateOrder = PSShopgateOrder::instanceByOrderId($id_order);
 
-		$shopgateConfig 		= new ShopgateConfigPrestashop();
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
 
-		$shopgateBuilder     	= new ShopgateBuilder($shopgateConfig);
-		$shopgateMerchantApi 	= $shopgateBuilder->buildMerchantApi();
+		$shopgateConfig = new ShopgateConfigPresta(
+			is_array($storedConfig) ?
+				$storedConfig :
+				array ()
 
-		if (!is_object($shopgateOrder) || !$shopgateOrder->id_shopgate_order)
+		);
+
+		$shopgateBuilder     = new ShopgateBuilder($shopgateConfig);
+		$shopgateMerchantApi = $shopgateBuilder->buildMerchantApi();
+
+		if (!Validate::isLoadedObject($shopgateOrder))
 			return;
 
 		try
 		{
-
-			$shippedOrderStates = array();
-			if (version_compare(_PS_VERSION_, '1.5.0.0', '>='))
+			switch ($orderState->id)
 			{
-				$orderStates = OrderState::getOrderStates($this->context->language->id);
-				foreach ($orderStates as $orderState)
-					if ($orderState['shipped'])
-						$shippedOrderStates[$orderState['id_order_state']] = 1;
+				case _PS_OS_DELIVERED_:
+					$shopgateMerchantApi->setOrderShippingCompleted($shopgateOrder->order_number);
+					break;
+				case _PS_OS_SHIPPING_:
+					$shopgateMerchantApi->addOrderDeliveryNote($shopgateOrder->order_number, $shopgateOrder->shipping_service, $shopgateOrder->tracking_number, true, false);
+					break;
+				default:
+					break;
 			}
-			else
-			{
-				// Default methods for Prestashop version < 1.5.0.0
-				$shippedOrderStates[_PS_OS_DELIVERED_] = 1;
-				$shippedOrderStates[_PS_OS_SHIPPING_]  = 1;
-			}
-
-			if (!empty($shippedOrderStates[$newOrderState->id]))
-				$shopgateMerchantApi->setOrderShippingCompleted($shopgateOrder->order_number);
-
 		} catch(ShopgateMerchantApiException $e)
 		{
 			$msg              = new Message();
@@ -635,5 +686,340 @@ class ShopGate extends PaymentModule
 			$msg->private     = true;
 			$msg->add();
 		}
+	}
+
+	public function hookAdminOrder($params)
+	{
+		include_once dirname(__FILE__).'/backward_compatibility/backward.php';
+
+		$id_order = $params['id_order'];
+
+		$shopgateOrder = PSShopgateOrder::instanceByOrderId($id_order);
+
+		if (Tools::isSubmit('updateShopgateOrder'))
+		{
+			$shopgate_order  = Tools::getValue('shopgateOrder');
+			$shippingService = $shopgate_order['shipping_service'];
+			$trackingNumber  = $shopgate_order['tracking_number'];
+
+			if (isset($shippingService))
+			{
+				try
+				{
+					$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
+					$shopgateConfig = new ShopgateConfigPresta(
+						is_array($storedConfig) ?
+							$storedConfig :
+							array ()
+
+					);
+
+					$shopgateBuilder     = new ShopgateBuilder($shopgateConfig);
+					$shopgateMerchantApi = $shopgateBuilder->buildMerchantApi();
+					$shopgateMerchantApi->addOrderDeliveryNote($shopgateOrder->order_number, $shippingService, $trackingNumber, true, false);
+
+				} catch(ShopgateMerchantApiException $e)
+				{
+					$error = $e->getMessage();
+				}
+				$shopgateOrder->shipping_service = $shippingService;
+				$shopgateOrder->tracking_number  = $trackingNumber;
+				$shopgateOrder->update();
+			}
+		}
+
+		if (!Validate::isLoadedObject($shopgateOrder))
+			return '';
+
+		$sOrder = new ShopgateOrder();
+		$error  = null;
+		try
+		{
+			$shopgateConfig      = new ShopgateConfigPresta(
+				is_array(unserialize(Configuration::get('SHOPGATE_CONFIG'))) ?
+					unserialize(Configuration::get('SHOPGATE_CONFIG')) :
+					array ()
+
+			);
+			$shopgateBuilder     = new ShopgateBuilder($shopgateConfig);
+			$shopgateMerchantApi = $shopgateBuilder->buildMerchantApi();
+			$orders              = $shopgateMerchantApi->getOrders(array ('order_numbers[0]' => $shopgateOrder->order_number));
+			foreach ($orders->getData() as $o)
+			{
+				/* @var $o ShopgateOrder */
+				if ($o->getOrderNumber() == $shopgateOrder->order_number)
+					$sOrder = $o;
+			}
+		} catch(Exception $e)
+		{
+			$error = $e->getMessage();
+		}
+
+		$paymentInfoStrings = array (
+			'shopgate_payment_name'     => $this->l('Payment name'),
+			'upp_transaction_id'        => $this->l('Transaction ID'),
+			'authorization'             => $this->l('Authorization'),
+			'settlement'                => $this->l('Settlement'),
+			'purpose'                   => $this->l('Purpose'),
+			'billsafe_transaction_id'   => $this->l('Transaction ID'),
+			'reservation_number'        => $this->l('Reservation number'),
+			'activation_invoice_number' => $this->l('Invoice activation number'),
+			'bank_account_holder'       => $this->l('Account holder'),
+			'bank_account_number'       => $this->l('Account number'),
+			'bank_code'                 => $this->l('Bank code'),
+			'bank_name'                 => $this->l('Bank name'),
+			'iban'                      => $this->l('IBAN'),
+			'bic'                       => $this->l('BIC'),
+			'transaction_id'            => $this->l('Transaction ID'),
+			'payer_id'                  => $this->l('Payer ID'),
+			'payer_email'               => $this->l('Payer email')
+		);
+
+		$sOrderDeliveryNotes = array ();
+
+		if (is_array($sOrder->getDeliveryNotes()))
+		{
+			foreach ($sOrder->getDeliveryNotes() as $notes)
+			{
+				$sOrderDeliveryNotes[] = array (
+					'shipping_service_id' => $notes->getShippingServiceId(),
+					'tracking_number'     => $notes->getTrackingNumber(),
+					'shipping_time'       => $notes->getShippingTime(),
+				);
+			}
+		}
+
+		// build comments
+		$comments = array ();
+		foreach ($sOrder->jsonDecode($shopgateOrder->comments) as $text => $information)
+			$comments[] = sprintf($this->l($text), $information);
+
+		$this->context->smarty->assign('sOrder', $sOrder);
+		$this->context->smarty->assign('sOrderComments', $comments);
+		$this->context->smarty->assign('sOrderPaymentInfos', $sOrder->getPaymentInfos());
+		$this->context->smarty->assign('sOrderDeliveryNotes', $sOrderDeliveryNotes);
+		$this->context->smarty->assign('sShopNumber', $shopgateOrder->shop_number);
+		$this->context->smarty->assign('shopgate_error', $error);
+		$this->context->smarty->assign('paymentInfoStrings', $paymentInfoStrings);
+		$this->context->smarty->assign('shopgateOrder', $shopgateOrder);
+		$this->context->smarty->assign('shippingInfos', $sOrder->getShippingInfos());
+		$this->context->smarty->assign('shipping_service_list', $this->shipping_service_list);
+		$this->context->smarty->assign('sModDir', $this->_path);
+		$this->context->smarty->assign('api_url', $this->getApiUrl());
+		$this->context->smarty->assign('mod_dir', $this->_path);
+
+		/**
+		 * fix objects for template
+		 */
+		$this->context->smarty->assign('sOrderInvoiceAddress', $sOrder->getInvoiceAddress());
+		$this->context->smarty->assign('sOrderDeliveryAddress', $sOrder->getDeliveryAddress());
+
+		return $this->display(__FILE__, 'views/templates/admin/admin_order.tpl');
+	}
+
+	public function getContent()
+	{
+		include_once dirname(__FILE__).'/backward_compatibility/backward.php';
+
+		$output         = '';
+
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
+		$shopgateConfig = new ShopgateConfigPresta(
+			is_array($storedConfig) ?
+				$storedConfig :
+				array ()
+
+		);
+
+		$bools = array ('true' => true, 'false' => false);
+
+		/** @var CarrierCore $carrierModel */
+		$carrierModel      = new Carrier();
+		$allCarriers = (defined('ALL_CARRIERS') ? ALL_CARRIERS : (defined('Carrier::ALL_CARRIERS') ? Carrier::ALL_CARRIERS : null));
+		$carrierCollection = $carrierModel->getCarriers($this->context->language->id, true, false, false, null, $allCarriers);
+
+		$settingKeys = array (
+			'SHOPGATE_SHIPPING_SERVICE',
+			'SHOPGATE_MIN_QUANTITY_CHECK',
+			'SHOPGATE_OUT_OF_STOCK_CHECK',
+			'SHOPGATE_PRODUCT_DESCRIPTION',
+			'SHOPGATE_SUBSCRIBE_NEWSLETTER',
+			'SHOPGATE_EXPORT_ROOT_CATEGORIES',
+			'SHOPGATE_EXPORT_PRICE_TYPE'
+		);
+		$carriers    = array ();
+
+		foreach ($carrierCollection as $carrier)
+		{
+			$configKey            = 'SHOPGATE_CARRIER_MAPPING_'.$carrier['id_carrier'];
+			$carriers[$configKey] = $carrier;
+			$settingKeys[]        = $configKey;
+
+			$configKey            = 'USE_MOBILE_CARRIER_'.$carrier['id_carrier'];
+			$settingKeys[]        = $configKey;
+		}
+
+		if (Tools::isSubmit('saveConfigurations'))
+		{
+			$configs = Tools::getValue('configs', array ());
+			foreach ($configs as $name => $value)
+			{
+				if (isset($bools[$value]))
+					$configs[$name] = $bools[$value];
+				$configs[$name] = htmlentities($configs[$name]);
+			}
+
+			$configs['use_stock'] = !((bool)Configuration::get('PS_ORDER_OUT_OF_STOCK'));
+
+			$settings = Tools::getValue('settings', array ());
+
+			foreach ($settings as $key => $value)
+			{
+				if (in_array($key, $settingKeys))
+					Configuration::updateValue($key, htmlentities($value, ENT_QUOTES));
+			}
+			$languageID = Configuration::get('PS_LANG_DEFAULT');
+			if (Validate::isLanguageIsoCode($configs['language']))
+				$languageID = Language::getIdByIso($configs['language']);
+			Configuration::updateValue('SHOPGATE_LANGUAGE_ID', $languageID);
+
+			try
+			{
+				$shopgateConfig->loadArray($configs);
+				$shopgateConfig->initFolders();
+				$shopgateConfig->save(array_keys($configs));
+				$output .= '<div class="conf confirm"><img src="../img/admin/ok.gif" alt="'.$this->l('Confirmation').'" />'.$this->l('Configurations updated').'</div>';
+			} catch(ShopgateLibraryException $e)
+			{
+				$output .= '<div class="conf error"><img src="../img/admin/error.png" alt="'.$this->l('Error').'" />'.$this->l('Error').': '.$e->getAdditionalInformation().'</div>';
+			}
+		}
+
+		$langs = array ();
+		foreach (Language::getLanguages() as $l)
+			$langs[Tools::strtoupper($l['iso_code'])] = $l['name'];
+
+		$servers = array (
+			'live'   => $this->l('Live'),
+			'pg'     => $this->l('Playground'),
+			'custom' => $this->l('Custom')
+		);
+
+		$enables = array ();
+
+		$settings = Configuration::getMultiple($settingKeys);
+		/**
+		 * read config from db
+		 */
+
+		$storedConfig = unserialize(Configuration::get('SHOPGATE_CONFIG'));
+
+		$shopgateConfig = new ShopgateConfigPresta(
+			is_array($storedConfig) ?
+				$storedConfig :
+				array ()
+
+		);
+		$configs        = $shopgateConfig->toArray();
+
+		/**
+		 * price types
+		 */
+		$priceTypes = array (
+			Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET   => $this->l('Net'),
+			Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_GROSS => $this->l('Gross')
+		);
+
+		$this->context->smarty->assign('settings', $settings);
+		$this->context->smarty->assign('shipping_service_list', $this->shipping_service_list);
+		$this->context->smarty->assign('langs', $langs);
+		$this->context->smarty->assign('currencies', Currency::getCurrencies());
+		$this->context->smarty->assign('servers', $servers);
+		$this->context->smarty->assign('enables', $enables);
+		$this->context->smarty->assign('configs', $configs);
+		$this->context->smarty->assign('mod_dir', $this->_path);
+		$this->context->smarty->assign('api_url', $this->getApiUrl());
+		$this->context->smarty->assign('offer_url', $this->getOfferLink());
+		$this->context->smarty->assign('video_url', $this->getVideoLink());
+		$this->context->smarty->assign('product_export_descriptions', $this->product_export_descriptions);
+		$this->context->smarty->assign('carrier_list', $carriers);
+		$this->context->smarty->assign('product_export_price_type', $priceTypes);
+
+		return $output.$this->display(__FILE__, 'views/templates/admin/configurations.tpl');
+	}
+
+	/**
+	 * returns the api url
+	 *
+	 * @return string
+	 */
+	protected function getApiUrl()
+	{
+		$api_url = 'http://';
+
+		/** @var ShopCore $shopModel */
+		$shopModel = $this->context->shop;
+		if (isset($shopModel->domain))
+		{
+			if ($shopModel->domain)
+				$api_url = $api_url.$shopModel->domain;
+			if ($shopModel->physical_uri)
+				$api_url = $api_url.$shopModel->physical_uri;
+			if ($shopModel->virtual_uri)
+				$api_url = $api_url.$shopModel->virtual_uri;
+		}
+		else
+			$api_url = _PS_BASE_URL_.__PS_BASE_URI__;
+
+		return $api_url.'modules/shopgate/api.php';
+	}
+
+	/**
+	 * returns the offer link by iso code
+	 *
+	 * @return string
+	 */
+	protected function getOfferLink()
+	{
+		$query = 'https://www.shopgate.com/%s/prestashop_offer';
+
+		switch ($this->context->language->iso_code)
+		{
+			case 'de' :
+				$country = 'de';
+				break;
+			case 'pl' :
+				$country = 'pl';
+				break;
+			case 'fr' :
+				$country = 'fr';
+				break;
+			default :
+				$country = 'us';
+		}
+
+		return sprintf($query, $country);
+	}
+
+	protected function getVideoLink()
+	{
+		switch ($this->context->language->iso_code)
+		{
+			case 'de' :
+				$url = '//www.youtube.com/embed/z7EY_nakQDc?controls=0&showinfo=0&rel=0';
+				break;
+			case 'pl' :
+				$url = '//www.youtube.com/embed/nx6d2L2J4y8?controls=0&showinfo=0&rel=0';
+				break;
+			case 'fr' :
+				$url = '//www.youtube.com/embed/0cbXcocbgkA?controls=0&showinfo=0&rel=0';
+				break;
+			default :
+				$url = '//www.youtube.com/embed/I6UcmbGdZcw?controls=0&showinfo=0&rel=0';
+		}
+
+		return $url;
 	}
 }
