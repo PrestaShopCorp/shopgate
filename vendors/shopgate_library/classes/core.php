@@ -961,7 +961,7 @@ class ShopgateBuilder {
 			$xmlModelNames = array(
 					'get_items' => 'Shopgate_Model_Catalog_Product',
 					'get_categories' => 'Shopgate_Model_Catalog_Category',
-					'get_reviews' => 'Shopgate_Model_Catalog_Review'
+					'get_reviews' => 'Shopgate_Model_Review'
 			);
 			
 			if ($this->config->getExportConvertEncoding()) {

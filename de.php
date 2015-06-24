@@ -117,3 +117,4 @@ $_MODULE['<{shopgate}prestashop>configurations_effdb9ce6c5d44df31b89d7069c8e0fb'
 $_MODULE['<{shopgate}prestashop>configurations_398ccf8cf34c72fdae6ac112568abd2d'] = 'CName';
 $_MODULE['<{shopgate}prestashop>configurations_3ac64dc4e3a75611f07817ad926dd963'] = 'Produktexport';
 $_MODULE['<{shopgate}prestashop>configurations_c9cc8cce247e49bae79f15173ce97354'] = 'Speichern';
+$_MODULE['<{shopgate}prestashop>configurations_60ac30664b378e80d3d5eceb60bc9ee9'] = '"Standardpfad"-Kategorien auf der obersten Ebene exportieren';

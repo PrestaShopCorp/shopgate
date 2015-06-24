@@ -1,0 +1,23 @@
+.form-horizontal.shopgate .form-group {
+    margin-bottom: 4px;
+}
+
+.form-horizontal.shopgate .form-group .control-label {
+    padding-top: 0;
+}
+
+.form-horizontal.shopgate .form-group .control-label.sub {
+    text-align: left;
+}
+
+.form-horizontal.shopgate .icon-check {
+    color: #008000;
+}
+
+.form-horizontal.shopgate .icon-remove {
+    color: red;
+}
+
+.form-horizontal.shopgate .form-group .form-value.well {
+    background-color: white;
+}
