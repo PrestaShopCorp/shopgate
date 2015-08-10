@@ -223,13 +223,13 @@ class ShopgatePluginApi extends ShopgateObject implements ShopgatePluginApiInter
 			
 			if (in_array($this->params['action'], $this->exportActionList)) {
 				if (isset($this->params['memory_limit'])) {
-					$this->plugin->setExportMemoryLimit($this->params['memory_limit']);
+					$this->plugin->setExportMemoryLimit((int) $this->params['memory_limit']);
 				} else {
 					$this->plugin->setExportMemoryLimit($this->config->getDefaultMemoryLimit());
 				}
 				
 				if (isset($this->params['max_execution_time'])) {
-					$this->plugin->setExportTimeLimit($this->params['max_execution_time']);
+					$this->plugin->setExportTimeLimit((int) $this->params['max_execution_time']);
 				} else {
 					$this->plugin->setExportTimeLimit($this->config->getDefaultExecutionTime());
 				}
@@ -248,7 +248,7 @@ class ShopgatePluginApi extends ShopgateObject implements ShopgatePluginApiInter
 			$message .= 'and message: \''.$e->getMessage()."'\n";
 			
 			// new ShopgateLibraryException to build proper error message and perform logging
-			$se = new ShopgateLibraryException($message);
+			$se = new ShopgateLibraryException($message, null, false, true, $e);
 			$error = $se->getCode();
 			$errortext = $se->getMessage();
 		}

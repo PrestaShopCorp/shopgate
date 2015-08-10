@@ -1,5 +1,45 @@
 '''Deutsch'''
 
+'''Version 2.9.21'''
+* Konstanten für weitere Zahlungsarten in Klasse ShopgateCartBase hinzugefügt
+
+'''Version 2.9.20'''
+* XML-Export: Es werden nun keine XML-Tags mehr leer hinzugefügt, wenn diese eigentlich entfernt werden sollten
+
+'''Version 2.9.19'''
+* Produkt-XML-Export: manche XML-Knoten wurden fälschlicherweise mit "forceEmpty"-Attribute exportiert
+
+'''Version 2.9.18'''
+* Einen Bug behoben, der die Kompatibilität mit PHP < 5.3 gebrochen hat
+
+'''Version 2.9.17'''
+* Problem beim XML Export mit Validierung von boolschen Werten behoben
+
+'''Version 2.9.16'''
+* Shopgate Konfiguration um Parameter force_source_encoding erweitert
+
+'''Version 2.9.15'''
+* Review-XML-Export: Falschen Type-Hint auf Shopgate_Model_Review korrigiert
+
+'''Version 2.9.14'''
+* Exporte: Fehler beim Setzen des Speicher- und Zeitlimits für Export-Funktionen behoben
+
+'''Version 2.9.13'''
+* ShopgateLibraryException: neuer Konstruktor-Parameter für vorherige Exception; verbessertes Logging von Stacktraces
+* Produkt-XML-Export: Bei <category> die Subnode <paths> entfernt 
+* Produkt-XML-Export: Nodes <tax_percent> + <tax_class> wird nur noch exportiert, wenn explizit ein Wert gesetzt wurde
+* XML-Export: alle ungültigen Zeichen werden nun herausgefiltert (entsprechend den Regeln von www.w3.org)
+* neue Konstante für die Sichtbarkeit von Produkten hinzugefügt
+
+'''Version 2.9.12'''
+* ShopgateCustomer::getRegistrationDate() liefert jetzt das Registrierungsdatum bei Aufrufen von ShopgatePlugin::registerCustomer()
+* ShopgateExternalOrder::setStatusName() und ::setStatusColor() erlaubt das Setzen eines individuellen Bestellstatus bei Aufrufen von ShopgatePlugin::getOrders()
+
+'''Version 2.9.11'''
+* Produkt-XML-Export: leere Knoten in Kindprodukten sind jetzt möglich
+* Nicht unterstütze Zeichen aus CDATA entfernt
+* Bugfix: nicht existente Funktion ShopgateContainerVisitor::visitCoupon() wurde aufgerufen
+
 '''Version 2.9.10'''
 * Fehlerhafte Benamung der Konstante behoben 
 
@@ -382,6 +422,46 @@
 
 
 '''English'''
+
+'''Version 2.9.21'''
+* added constants for more payment types in class ShopgateCartBase
+
+'''Version 2.9.20'''
+* xml export does not include empty xml elements when they should actually be removed instead
+
+'''Version 2.9.19'''
+* product XML export: some XML nodes were exported with a "forceEmpty" attribute by mistake
+
+'''Version 2.9.18'''
+* Fixed a bug that broke compatibility with PHP < 5.3
+
+'''Version 2.9.17'''
+* fixed validation issue in XML export with boolean values
+
+'''Version 2.9.16'''
+* Shopgate configuration extended with parameter force_source_encoding
+
+'''Version 2.9.15'''
+* review XML export: fixed outdated type hint to Shopgate_Model_Review
+
+'''Version 2.9.14'''
+* exports: fixed a bug in setting memory limit and maximum execution time on export functions
+
+'''Version 2.9.13'''
+* ShopgateLibraryException: new constructor argument for previous Exception; improved stack trace logging
+* product XML export: removed the subnode <paths> of <category> 
+* product XML export: The nodes <tax_percent> + <tax_class> will only be exported if a value was explicitly set
+* XML export: all invalid characters are filtered out now (according to the rules from www.w3.org)
+* added a new constant for product invisibility
+
+'''Version 2.9.12'''
+* ShopgateCustomer::getRegistrationDate() will now return the point in time a customer registered during ShopgatePlugin::registerCustomer()
+* new methods ShopgateExternalOrder::setStatusName() and ::setStatusColor() to set an individual order status during ShopgatePlugin::getOrders()
+
+'''Version 2.9.11'''
+* product XML export: empty nodes in child products are now possible
+* removed unsupported characters from CDATA
+* bugfix: non-existent function ShopgateContainerVisitor::visitCoupon() was called
 
 '''Version 2.9.10'''
 * corrected wrong constant names 
