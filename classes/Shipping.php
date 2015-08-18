@@ -25,6 +25,8 @@ class ShopgateShipping
 
 	const SG_ALL_CARRIERS = 5;
 
+	const CARRIER_CODE_ALL = 'All';
+
 	/** @var ShopGate */
 	protected $module;
 
@@ -176,5 +178,47 @@ class ShopgateShipping
 
 		$carrier->save();
 		Configuration::updateValue('SG_CARRIER_ID', $carrier->id);
+	}
+
+	/**
+	 * @param int        $id_lang
+	 * @param bool|false $active_countries
+	 * @param bool|false $active_carriers
+	 * @param null       $contain_states
+	 *
+	 * @return array
+	 * @throws PrestaShopDatabaseException
+	 */
+	public static function getDeliveryCountries($id_lang, $active_countries = false, $active_carriers = false, $contain_states = null)
+	{
+		if (!Validate::isBool($active_countries) || !Validate::isBool($active_carriers))
+			die(Tools::displayError());
+
+		$states = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('
+		SELECT s.*
+		FROM `'._DB_PREFIX_.'state` s
+		ORDER BY s.`name` ASC');
+
+		$result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('
+			SELECT cl.*,c.*, cl.`name` AS country, zz.`name` AS zone
+			FROM `'._DB_PREFIX_.'country` c
+			LEFT JOIN `'._DB_PREFIX_.'country_lang` cl ON (c.`id_country` = cl.`id_country` AND cl.`id_lang` = '.(int)$id_lang.')
+			INNER JOIN (`'._DB_PREFIX_.'carrier_zone` cz INNER JOIN `'._DB_PREFIX_.'carrier` cr ON ( cr.id_carrier = cz.id_carrier AND cr.deleted = 0 '.
+			($active_carriers ? 'AND cr.active = 1) ' : ') ').'
+			LEFT JOIN `'._DB_PREFIX_.'zone` zz ON cz.id_zone = zz.id_zone) ON zz.`id_zone` = c.`id_zone`
+			WHERE 1
+			'.($active_countries ? 'AND c.active = 1' : '').'
+			'.(!is_null($contain_states) ? 'AND c.`contains_states` = '.(int)$contain_states : '').'
+			ORDER BY cl.name ASC');
+
+		$countries = array();
+		foreach ($result as &$country)
+			$countries[$country['id_country']] = $country;
+		foreach ($states as &$state)
+			if (isset($countries[$state['id_country']])) /* Does not keep the state if its country has been disabled and not selected */
+				if ($state['active'] == 1)
+					$countries[$state['id_country']]['states'][] = $state;
+
+		return $countries;
 	}
 }

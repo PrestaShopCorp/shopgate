@@ -147,7 +147,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
 		}
 		else
 		{
-			$taxRulesGroups  = TaxRulesGroupCore::getTaxRulesGroups(True);
+			$taxRulesGroups  = TaxRulesGroupCore::getTaxRulesGroups(true);
 			$idTaxRulesGroup = (int)Product::getIdTaxRulesGroupByIdProduct($this->currentProduct->id, null);
 
 			foreach ($taxRulesGroups as $taxRulesGroup)

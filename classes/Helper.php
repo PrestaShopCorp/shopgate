@@ -200,7 +200,18 @@ class ShopgateHelper
 		$shopgateBuilder = new ShopgateBuilder($shopgateConfig);
 		$shopgateRedirect = $shopgateBuilder->buildRedirect();
 
-		switch (Tools::getValue('controller'))
+		$controller = Tools::getValue('controller');
+
+		/**
+		 * prepare controller for older versions
+		 */
+		if (!$controller)
+		{
+			$fileInfo = pathinfo($_SERVER['SCRIPT_NAME']);
+			$controller = $fileInfo['filename'];
+		}
+
+		switch ($controller)
 		{
 			case 'category' :
 				return $shopgateRedirect->buildScriptCategory(Tools::getValue('id_category', 0));

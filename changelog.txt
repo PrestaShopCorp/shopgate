@@ -1,5 +1,8 @@
 '''English'''
 
+'''Version 2.9.48'''
+* fixing mobile redirect for older versions
+
 '''Version 2.9.47'''
 * fixed empty phone number for addresses
 * changed default carrier to shopgate

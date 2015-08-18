@@ -272,7 +272,7 @@ class ShopgateSettings
 					&& self::arrayValueExists('key', $resultTaxRate['key'], $taxRates))
 						continue;
 				if (!is_string($country))
-					$country='';
+					$country = '';
 				$resultTaxRate['display_name'] 			= $taxItem->name;
 				$resultTaxRate['tax_percent'] 			= $taxItem->rate;
 				$resultTaxRate['country'] 				= $country;
@@ -481,6 +481,64 @@ class ShopgateSettings
 			$result['tax']['tax_rules'] = ShopgateSettings::getTaxRules($module);
 		}
 
+		/**
+		 * allowed_shipping_countries and allowed_address_countries
+		 */
+		$result['allowed_shipping_countries'] = array();
+		$result['allowed_address_countries'] = array();
+
+		$countryResultItems = array();
+		$addressResultItems = array();
+
+		foreach (ShopgateShipping::getDeliveryCountries($module->context->language->id, true, true) as $country)
+		{
+			if (is_array($country['states']))
+			{
+				$resultStates = array();
+				foreach ($country['states'] as $state)
+					array_push($resultStates, $state['iso_code']);
+			}
+			else
+				$resultStates = array(ShopgateShipping::CARRIER_CODE_ALL);
+
+			$countryResultItems[$country['iso_code']] = $resultStates;
+		}
+
+		foreach ($countryResultItems as $country => $state)
+		{
+			$item = array(
+				'country' => $country,
+				'state' => $state
+			);
+
+			array_push($result['allowed_shipping_countries'], $item);
+		}
+
+		foreach (Country::getCountries($module->context->language->id, true) as $country)
+		{
+			if (is_array($country['states']))
+			{
+				$resultStates = array();
+				foreach ($country['states'] as $state)
+					array_push($resultStates, $state['iso_code']);
+			}
+			else
+				$resultStates = array(ShopgateShipping::CARRIER_CODE_ALL);
+
+			$addressResultItems[$country['iso_code']] = $resultStates;
+		}
+
+		foreach ($addressResultItems as $country => $state)
+		{
+			$item = array(
+				'country' => $country,
+				'state' => $state
+			);
+
+			array_push($result['allowed_address_countries'], $item);
+		}
+
 		return $result;
+
 	}
 }
