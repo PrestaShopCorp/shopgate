@@ -17,47 +17,25 @@
  * @license   http://opensource.org/licenses/AFL-3.0 Academic Free License ("AFL"), in the version 3.0
  */
 
-require_once(dirname(__FILE__).'/../../config/config.inc.php');
-require_once(dirname(__FILE__).'/shopgate.php');
-require_once(dirname(__FILE__).'/override/classes/Cart.php');
+/**
+ * default relative path to config
+ */
+const DEFAULT_RELATIVE_CONFIG_PATH = '/../../config/config.inc.php';
 
-if (version_compare(_PS_VERSION_, '1.4.0.2', '>='))
-{
-	$controller = new FrontController();
-	$controller->init();
-	$modules = ModuleCore::getModulesInstalled();
-}
-else
-{
-	/** in versions before 1.4.0.2 FrontController doesn't exist */
-	require_once(dirname(__FILE__).'/../../init.php');
-	$modules = Module::getModulesInstalled();
-}
+require_once(dirname($_SERVER['SCRIPT_FILENAME']).'/classes/Helper.php');
+require_once(ShopgateHelper::normalizePath(
+	array(
+			dirname($_SERVER['SCRIPT_FILENAME']),
+			DEFAULT_RELATIVE_CONFIG_PATH
+		)
+	)
+);
 
-$moduleIsActive = 0;
-foreach ($modules as $key => $module)
-{
-	if ($module['name'] == 'shopgate' && !empty($module['active']))
-		$moduleIsActive = 1;
-}
-if ($moduleIsActive == 0)
-	throw new ShopgateLibraryException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, 'shopgate module is not installed!');
+require_once(dirname($_SERVER['SCRIPT_FILENAME']).'/shopgate.php');
 
-/** needed for compatiblitiy */
-function getOrderStateId($order_state_var)
-{
-	return (int)(defined($order_state_var) ? constant($order_state_var) : (defined('_'.$order_state_var.'_') ? constant('_'.$order_state_var.'_') : Configuration::get($order_state_var)));
-}
+$controller = new FrontController();
+$controller->init();
 
-/** select the correct plugin */
-if (getOrderStateId('PS_COUNTRY_DEFAULT') && ($countryId = getOrderStateId('PS_COUNTRY_DEFAULT')) !== 0 || getOrderStateId('PS_SHOP_COUNTRY_ID') && ($countryId = getOrderStateId('PS_SHOP_COUNTRY_ID')) !== 0)
-	$countryIsoCode = Tools::strtoupper(Db::getInstance()->getValue('SELECT `iso_code` FROM `'._DB_PREFIX_.'country` WHERE `id_country` = '.(int)$countryId));
-elseif (Configuration::get('PS_LOCALE_COUNTRY'))
-	$countryIsoCode = Configuration::get('PS_LOCALE_COUNTRY');
-
-if (in_array(Tools::strtoupper($countryIsoCode), array('US')))
-	$plugin = new PSShopgatePluginUS();
-else
-	$plugin = new PSShopgatePlugin();
-
+$plugin = new ShopgatePluginPrestashop();
 $response = $plugin->handleRequest($_POST);
+

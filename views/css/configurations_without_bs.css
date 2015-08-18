@@ -1,0 +1,315 @@
+@charset "UTF-8";
+@import url("//fonts.googleapis.com/css?family=Open+Sans:300,400,700");
+@import url("//fonts.googleapis.com/css?family=Ubuntu+Condensed");
+
+#shopgateTeaser * {
+    font-family: 'Open Sans', Verdana, sans-serif;
+    font-size: 15px;
+}
+
+#shopgateTeaser a.register {
+    display: inline-block;
+    width: 175px;
+    padding: 8px;
+    background: #32ac5c;
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+    text-align: center;
+    font-weight: normal;
+}
+
+#shopgateTeaserHeader {
+    display: table;
+    width: 100%;
+}
+
+#shopgateTeaserHeader > div {
+    display: table-row;
+}
+
+#shopgateTeaserHeader > div > div {
+    display: table-cell;
+    padding: 20px;
+    vertical-align: middle;
+}
+
+#shopgateTeaserHeader div.logo {
+    padding-left: 15px;
+}
+
+#shopgateTeaserHeader div.devices {
+    text-align: center;
+}
+
+#shopgateTeaserHeader div.register {
+    text-align: right;
+    width: 1%;
+}
+
+#shopgateTeaserContent {
+    padding: 25px;
+    background: #f5f5f5;
+}
+
+#shopgateTeaserContent h3 {
+    margin: 0;
+    padding: 0 0 15px;
+    font-size: 22px;
+    font-weight: normal;
+}
+
+#shopgateTeaserContent h4 {
+    margin: 5px 0;
+    padding: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#shopgateTeaserContent ul {
+    list-style: none;
+    margin: 0 0 30px;
+    padding: 0;
+}
+
+#shopgateTeaserContent li {
+    padding: 5px 0 5px 20px;
+    background: url(../img/check.png) no-repeat left center;
+}
+
+#shopgateTeaserContent p {
+    margin: 0;
+    padding: 5px 0 20px;
+}
+
+#shopgateTeaserContent li,
+#shopgateTeaserContent p {
+    color: #444444;
+}
+
+#shopgateTeaserSidebar {
+    float: left;
+    width: 330px;
+}
+
+#shopgateTeaserMain {
+    margin-left: 370px;
+}
+
+#shopgateTeaserMain .contentImage {
+    float: right;
+}
+
+#shopgateTeaserMain div.register {
+    display: inline-block;
+    border-right: 1px solid #c5c5c5;
+    margin-right: 10px;
+    padding-right: 15px;
+}
+
+#shopgateTeaserMain .registerText {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#shopgateTeaserContent {
+    margin-bottom: 20px;
+}
+
+.shopgate .panel {
+    position: relative;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: solid 1px #e6e6e6;
+    background-color: #fff;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    -webkit-box-shadow: rgba(0, 0, 0, 0.1) 0 2px 0, #fff 0 0 0 3px inset;
+    box-shadow: rgba(0, 0, 0, 0.1) 0 2px 0, #fff 0 0 0 3px inset
+}
+
+.shopgate .panel .panel-heading {
+    font-family: "Ubuntu Condensed", Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #555;
+    height: 32px
+}
+
+.shopgate .panel-default {
+    border-color: #ddd
+}
+
+.shopgate .panel-default > .panel-heading {
+    color: #333;
+    background-color: #f5f5f5;
+    border-color: #ddd
+}
+
+.shopgate h3:not(.modal-title), .shopgate .panel-heading {
+    border: none;
+    font-size: 1.2em;
+    line-height: 2.2em;
+    height: 2.2em;
+    text-transform: uppercase;
+    border-bottom: solid 1px #eee;
+    padding: 0 0 0 5px;
+    margin: -20px -16px 15px -16px;
+}
+
+.shopgate .form-control[disabled], .shopgate input[disabled][type="text"],
+.shopgate input[disabled][type="search"], .shopgate input[disabled][type="password"],
+.shopgate textarea[disabled], .shopgate select[disabled], .shopgate .form-control[readonly],
+.shopgate input[readonly][type="text"], .shopgate input[readonly][type="search"],
+.shopgate input[readonly][type="password"], .shopgate textarea[readonly],
+.shopgate select[readonly], fieldset[disabled] .shopgate .form-control,
+fieldset[disabled] .shopgate input[type="text"], fieldset[disabled] .shopgate input[type="search"],
+fieldset[disabled] .shopgate input[type="password"], fieldset[disabled] .shopgate textarea,
+fieldset[disabled] .shopgate select {
+    cursor: not-allowed;
+    background-color: #eee;
+    opacity: 1
+}
+
+.shopgate .form-horizontal .control-label {
+    text-align: right;
+    margin-bottom: 0;
+    padding-top: 5px;
+}
+
+.shopgate .form-control, .shopgate input[type="text"], .shopgate input[type="search"], .shopgate input[type="password"], .shopgate textarea, .shopgate select {
+    display: block;
+    height: 27px;
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.42857;
+    color: #555;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    -webkit-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+    -o-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+    transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+}
+
+.shopgate .form-group .help-block {
+    padding-top: 5px;
+    display: block;
+    color: #5d5d5d;
+}
+
+.shopgate .panel-body {
+    padding-right: 20px;
+}
+
+.shopgate .col-xs-10 .radio-inline {
+    width: auto;
+    float: none;
+}
+
+.shopgate .col-xs-10 {
+    width: 82%;
+    margin-bottom: 10px;
+    margin-left: 18%;
+}
+
+.shopgate .col-xs-2 {
+    width: 16.66667%;
+}
+
+.shopgate.col-xs-10 {
+    float: left;
+}
+
+.shopgate .form-group {
+    clear: both;
+    margin-bottom: 15px;
+    content: " ";
+}
+
+.shopgate .form-group .radio {
+    margin-left: 25px;
+    font-weight: normal;
+}
+
+.shopgate label.radio {
+    float: none;
+    display: block;
+    text-align: left;
+    margin-left: 0px !important;
+    margin-bottom: 5px;
+}
+
+.shopgate .btn {
+    display: inline-block;
+    margin-bottom: 0;
+    font-weight: normal;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background-image: none;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.42857;
+    border-radius: 3px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none
+}
+
+.shopgate .btn.btn-default i {
+    color: #555
+}
+
+.shopgate .btn.btn-default:hover {
+    color: #fff;
+    background-color: #00aff0;
+    border-color: #008abd;
+    -webkit-box-shadow: none;
+    box-shadow: none
+}
+
+.shopgate .btn.btn-default:hover i {
+    color: #fff
+}
+
+.shopgate .btn.btn-primary {
+    background-color: #00aff0;
+    color: #fff;
+    text-transform: uppercase;
+    border-color: #008abd;
+    -webkit-box-shadow: #008abd 0 -2px 0 inset;
+    box-shadow: #008abd 0 -2px 0 inset
+}
+
+.bootstrap .btn.btn-primary:hover {
+    background-color: #008abd;
+    border-color: #00658a;
+    -webkit-box-shadow: none;
+    box-shadow: none
+}
+
+.form-group.native-carrier .checkbox input {
+    margin-left: 0;
+    margin-right: 10px
+}
+
+.form-group.native-carrier .checkbox {
+    float: none;
+    display: block;
+    text-align: left;
+    margin-left: 0px !important;
+    margin-bottom: 5px;
+}
+

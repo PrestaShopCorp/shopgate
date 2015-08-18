@@ -1,4 +1,5 @@
 <?php
+
 /**
 * Shopgate GmbH
 *
@@ -59,6 +60,7 @@ $_MODULE['<{shopgate}prestashop>shopgate_a5fedb0f74accd822564fb0aa51aff1e'] = 'S
 $_MODULE['<{shopgate}prestashop>shopgate_90589c47f06eb971d548591f23c285af'] = 'Personalisé';
 $_MODULE['<{shopgate}prestashop>shopgate_1cab5c872974015d91579c9467742ca4'] = 'Raison sociale de l\'adresse de facturation (<b>%s</b>) était réduit.';
 $_MODULE['<{shopgate}prestashop>shopgate_fe8b7c75893f5d6d27752e4c05889ab0'] = 'Raison sociale de l\'adresse de livraison (<b>%s</b>) était réduit.';
+$_MODULE['<{shopgate}prestashop>shopgate_bc0f7082192ef02e934a036cf4991789'] = "Ce produit n'est plus en stock";
 $_MODULE['<{shopgate}prestashop>admin_order_761f7b1f38afb9011b823160ea1810a1'] = 'Information de Shopgate';
 $_MODULE['<{shopgate}prestashop>admin_order_ff4fca87e9be302a84a7db7aa2a2b325'] = 'Numéro de shop';
 $_MODULE['<{shopgate}prestashop>admin_order_8413c683b4b27cc3f4dbd4c90329d8ba'] = 'Commentaires';
@@ -123,3 +125,4 @@ $_MODULE['<{shopgate}prestashop>configurations_46a6ea316a8e70e0dca38fe14c067641'
 $_MODULE['<{shopgate}prestashop>configurations_f16525381cfc0415eba02587566de1cb'] = 'Retransmission groupé';
 $_MODULE['<{shopgate}prestashop>configurations_3ac64dc4e3a75611f07817ad926dd963'] = 'Export des produits';
 $_MODULE['<{shopgate}prestashop>configurations_c9cc8cce247e49bae79f15173ce97354'] = 'Enregistrer';
+$_MODULE['<{shopgate}prestashop>configurations_60ac30664b378e80d3d5eceb60bc9ee9'] = 'Exportez la catégorie d\'accueil du plus haut niveau';
