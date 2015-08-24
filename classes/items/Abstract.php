@@ -19,35 +19,35 @@
 
 class ShopgateItemsAbstract
 {
-	const PREFIX = 'BD';
+    const PREFIX = 'BD';
 
-	/** @var  ShopgatePluginPrestashop */
-	protected $plugin;
+    /** @var  ShopgatePluginPrestashop */
+    protected $plugin;
 
-	protected $module;
+    protected $module;
 
-	/**
-	 * @param ShopgatePluginPrestashop
-	 */
-	public function __construct($plugin)
-	{
-		$this->plugin = $plugin;
-		$this->module = new ShopGate();
-	}
+    /**
+     * @param ShopgatePluginPrestashop
+     */
+    public function __construct($plugin)
+    {
+        $this->plugin = $plugin;
+        $this->module = new ShopGate();
+    }
 
-	/**
-	 * @return ShopgatePluginPrestashop
-	 */
-	public function getPlugin()
-	{
-		return $this->plugin;
-	}
+    /**
+     * @return ShopgatePluginPrestashop
+     */
+    public function getPlugin()
+    {
+        return $this->plugin;
+    }
 
-	/**
-	 * @return ShopGate
-	 */
-	public function getModule()
-	{
-		return $this->module;
-	}
+    /**
+     * @return ShopGate
+     */
+    public function getModule()
+    {
+        return $this->module;
+    }
 }

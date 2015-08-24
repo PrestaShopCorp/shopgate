@@ -19,25 +19,20 @@
 
 class ShopgateItemsReview extends ShopgateItemsAbstract
 {
-	/**
-	 * @param null $limit
-	 * @param null $offset
-	 * @return array
-	 */
-	public function getItems($limit = null, $offset = null)
-	{
-		$reviews = array();
+    /**
+     * @param null $limit
+     * @param null $offset
+     * @return array
+     */
+    public function getItems($limit = null, $offset = null)
+    {
+        $reviews = array();
 
-		if (ShopgateHelper::checkTable(sprintf('%sproduct_comment', _DB_PREFIX_)))
-			$reviews = Db::getInstance()->ExecuteS(
-				sprintf(
-					'SELECT * FROM %sproduct_comment WHERE validate = 1%s%s',
-					_DB_PREFIX_,
-					is_int($limit) ? ' LIMIT '.$limit : '',
-					is_int($offset) ? ' OFFSET '.$offset : ''
-				)
-			);
+        if (ShopgateHelper::checkTable(sprintf('%sproduct_comment', _DB_PREFIX_))) {
+            $reviews = Db::getInstance()->ExecuteS(sprintf('SELECT * FROM %sproduct_comment
+                                                            WHERE validate = 1%s%s', _DB_PREFIX_, is_int($limit) ? ' LIMIT '.$limit : '', is_int($offset) ? ' OFFSET '.$offset : ''));
+        }
 
-		return $reviews;
-	}
+        return $reviews;
+    }
 }

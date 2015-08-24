@@ -19,206 +19,218 @@
 
 class ShopgateShipping
 {
-	const DEFAULT_PLUGIN_API_KEY = 'PLUGINAPI';
+    const DEFAULT_PLUGIN_API_KEY = 'PLUGINAPI';
 
-	const DEFAULT_EXTERNAL_MODULE_CARRIER_NAME = 'shopgate';
+    const DEFAULT_EXTERNAL_MODULE_CARRIER_NAME = 'shopgate';
 
-	const SG_ALL_CARRIERS = 5;
+    const MODULE_CARRIER_NAME = 'shopgate';
 
-	const CARRIER_CODE_ALL = 'All';
+    const SG_ALL_CARRIERS = 5;
 
-	/** @var ShopGate */
-	protected $module;
+    const CARRIER_CODE_ALL = 'All';
 
-	/** @var array */
-	protected $shipping_service_list;
+    /** @var ShopGate */
+    protected $module;
 
-	/**
-	 * @param ShopGate $module
-	 */
-	public function __construct($module)
-	{
-		$this->shipping_service_list = array
-		(
-			ShopgateDeliveryNote::OTHER => $module->l('Other'),
-			ShopgateDeliveryNote::DHL => $module->l('DHL'),
-			ShopgateDeliveryNote::DHLEXPRESS => $module->l('DHL Express'),
-			ShopgateDeliveryNote::DP => $module->l('Deutsche Post'),
-			ShopgateDeliveryNote::DPD => $module->l('DPD'),
-			ShopgateDeliveryNote::FEDEX => $module->l('FedEx'),
-			ShopgateDeliveryNote::GLS => $module->l('GLS'),
-			ShopgateDeliveryNote::HLG => $module->l('Hermes'),
-			ShopgateDeliveryNote::TNT => $module->l('TNT'),
-			ShopgateDeliveryNote::TOF => $module->l('trans-o-flex'),
-			ShopgateDeliveryNote::UPS => $module->l('UPS'),
-			'LAPOSTE' => $module->l('LA POSTE'),
-		);
-	}
+    /** @var array */
+    protected $shipping_service_list;
 
-	/**
-	 * returns the shipping service list
-	 *
-	 * @return array
-	 */
-	public function getShippingServiceList()
-	{
-		return $this->shipping_service_list;
-	}
+    /**
+     * @param ShopGate $module
+     */
+    public function __construct($module)
+    {
+        $this->shipping_service_list = array (
+            ShopgateDeliveryNote::OTHER => $module->l('Other'),
+            ShopgateDeliveryNote::DHL => $module->l('DHL'),
+            ShopgateDeliveryNote::DHLEXPRESS => $module->l('DHL Express'),
+            ShopgateDeliveryNote::DP => $module->l('Deutsche Post'),
+            ShopgateDeliveryNote::DPD => $module->l('DPD'),
+            ShopgateDeliveryNote::FEDEX => $module->l('FedEx'),
+            ShopgateDeliveryNote::GLS => $module->l('GLS'),
+            ShopgateDeliveryNote::HLG => $module->l('Hermes'),
+            ShopgateDeliveryNote::TNT => $module->l('TNT'),
+            ShopgateDeliveryNote::TOF => $module->l('trans-o-flex'),
+            ShopgateDeliveryNote::UPS => $module->l('UPS'),
+            'LAPOSTE' => $module->l('LA POSTE'),
+        );
+    }
 
-	/**
-	 * @param ShopgateOrder $order
-	 *
-	 * @return mixed
-	 */
-	public function getCarrierIdByApiOrder($order)
-	{
-		switch ($order->getShippingType())
-		{
-			case self::DEFAULT_PLUGIN_API_KEY :
-			if ($order->getShippingInfos() && $order->getShippingInfos()->getName())
-					return $order->getShippingInfos()->getName();
-				break;
-			default :
+    /**
+     * returns the shipping service list
+     *
+     * @return array
+     */
+    public function getShippingServiceList()
+    {
+        return $this->shipping_service_list;
+    }
 
-				/**
-				 * use always shopgate carrier if shipping cost uses.
-				 */
-				if ($order->getShippingInfos()->getAmount() > 0)
-					return Configuration::get('SG_CARRIER_ID');
+    /**
+     * @param ShopgateOrder $order
+     *
+     * @return mixed
+     */
+    public function getCarrierIdByApiOrder($order)
+    {
+        switch ($order->getShippingType())
+        {
+            case self::DEFAULT_PLUGIN_API_KEY:
+                if ($order->getShippingInfos() && $order->getShippingInfos()->getName()) {
+                    return $order->getShippingInfos()->getName();
+                }
+                break;
+            default:
 
-				if ($order->getShippingGroup())
-				{
-					$carrierMapping = $this->getCarrierMapping();
-					if (is_array($carrierMapping))
-						foreach ($carrierMapping as $key => $value)
-							if ($order->getShippingGroup() == $key)
-								return $value;
+                /**
+                 * use always shopgate carrier if shipping cost uses.
+                 */
+                if ($order->getShippingInfos()->getAmount() > 0) {
+                    return Configuration::get('SG_CARRIER_ID');
+                }
 
-					break;
-				}
-		}
+                if ($order->getShippingGroup()) {
+                    $carrierMapping = $this->getCarrierMapping();
+                    if (is_array($carrierMapping)) {
+                        foreach ($carrierMapping as $key => $value) {
+                            if ($order->getShippingGroup() == $key) {
+                                return $value;
+                            }
+                        }
+                    }
 
-		return Configuration::get('SG_CARRIER_ID');
-	}
+                    break;
+                }
+        }
 
-	/**
-	 * @return array|mixed
-	 */
-	public function getCarrierMapping()
-	{
-		$carrierMapping = unserialize(base64_decode(Configuration::get('SG_CARRIER_MAPPING')));
+        return Configuration::get('SG_CARRIER_ID');
+    }
 
-		if (!is_array($carrierMapping))
-		{
-			$carrierMapping = array();
-			foreach ($this->getShippingServiceList() as $key => $value)
-				$carrierMapping[$key] = Configuration::get('SG_CARRIER_ID');
-		}
+    /**
+     * @return array|mixed
+     */
+    public function getCarrierMapping()
+    {
+        $carrierMapping = unserialize(base64_decode(Configuration::get('SG_CARRIER_MAPPING')));
 
-		return $carrierMapping;
-	}
+        if (!is_array($carrierMapping)) {
+            $carrierMapping = array();
+            foreach ($this->getShippingServiceList() as $key => $value) {
+                $carrierMapping[$key] = Configuration::get('SG_CARRIER_ID');
+            }
+        }
 
-	/**
-	 * @param ShopgateOrder $apiOrder
-	 * @return string
-	 */
-	public function getMappingHtml(ShopgateOrder $apiOrder)
-	{
-		switch ($apiOrder->getShippingType())
-		{
-			/**
-			 * read system
-			 */
-			case self::DEFAULT_PLUGIN_API_KEY :
-				return $this->_getNameByCarrierId($apiOrder->getShippingInfos()->getName());
-			/**
-			 * switch from mapping
-			 */
-			default :
-				return
-					sprintf(
-						'%s (%s - %s)',
-						$this->_getNameByCarrierId(
-							$this->getCarrierIdByApiOrder($apiOrder)
-						),
-						$apiOrder->getShippingType(),
-						$apiOrder->getShippingInfos()->getDisplayName()
-					);
-		}
-	}
+        return $carrierMapping;
+    }
 
-	/**
-	 * @param $carrierId
-	 * @return string
-	 */
-	protected function _getNameByCarrierId($carrierId)
-	{
-		/** @var CarrierCore $carrierItem */
-		$carrierItem = new Carrier($carrierId);
-		return $carrierItem->name;
-	}
+    /**
+     * @param ShopgateOrder $apiOrder
+     * @return string
+     */
+    public function getMappingHtml(ShopgateOrder $apiOrder)
+    {
+        switch ($apiOrder->getShippingType()) {
+            /**
+             * read system
+             */
+            case self::DEFAULT_PLUGIN_API_KEY:
+                return $this->_getNameByCarrierId($apiOrder->getShippingInfos()->getName());
+            /**
+             * switch from mapping
+             */
+            default:
+                return
+                    sprintf(
+                        '%s (%s - %s)',
+                        $this->_getNameByCarrierId(
+                            $this->getCarrierIdByApiOrder($apiOrder)
+                        ),
+                        $apiOrder->getShippingType(),
+                        $apiOrder->getShippingInfos()->getDisplayName()
+                    );
+        }
+    }
 
-	/**
-	 * create shopgate carrier
-	 */
-	public function createShopgateCarrier()
-	{
-		/** @var CarrierCore $carrier */
-		$carrier = new Carrier();
-		$carrier->name = 'Shopgate';
-		$carrier->is_module = 1;
-		$carrier->deleted = 0;
-		$carrier->shipping_external = 1;
-		$carrier->id_tax_rules_group = 0;
+    /**
+     * @param $carrierId
+     * @return string
+     */
+    protected function _getNameByCarrierId($carrierId)
+    {
+        /** @var CarrierCore $carrierItem */
+        $carrierItem = new Carrier($carrierId);
+        return $carrierItem->name;
+    }
 
-		$carrier->external_module_name = self::DEFAULT_EXTERNAL_MODULE_CARRIER_NAME;
+    /**
+     * create shopgate carrier
+     */
+    public function createShopgateCarrier()
+    {
+        /** @var CarrierCore $carrier */
+        $carrier = new Carrier();
+        $carrier->name = self::MODULE_CARRIER_NAME;
+        $carrier->is_module = 1;
+        $carrier->deleted = 0;
+        $carrier->shipping_external = 1;
+        $carrier->id_tax_rules_group = 0;
 
-		foreach (Language::getLanguages() as $language)
-			$carrier->delay[$language['id_lang']] = 'Depends on Shopgate selected carrier';
+        $carrier->external_module_name = self::DEFAULT_EXTERNAL_MODULE_CARRIER_NAME;
 
-		$carrier->save();
-		Configuration::updateValue('SG_CARRIER_ID', $carrier->id);
-	}
+        foreach (Language::getLanguages() as $language) {
+            $carrier->delay[$language['id_lang']] = 'Depends on Shopgate selected carrier';
+        }
 
-	/**
-	 * @param int        $id_lang
-	 * @param bool|false $active_countries
-	 * @param bool|false $active_carriers
-	 * @param null       $contain_states
-	 *
-	 * @return array
-	 * @throws PrestaShopDatabaseException
-	 */
-	public static function getDeliveryCountries($id_lang, $active_countries = false, $active_carriers = false, $contain_states = null)
-	{
-		if (!Validate::isBool($active_countries) || !Validate::isBool($active_carriers))
-			die(Tools::displayError());
+        $carrier->save();
+        Configuration::updateValue('SG_CARRIER_ID', $carrier->id);
+    }
 
-		$states = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('
-		SELECT s.*
-		FROM `'._DB_PREFIX_.'state` s
-		ORDER BY s.`name` ASC');
+    /**
+     * @param int        $id_lang
+     * @param bool|false $active_countries
+     * @param bool|false $active_carriers
+     * @param null       $contain_states
+     *
+     * @return array
+     * @throws PrestaShopDatabaseException
+     */
+    public static function getDeliveryCountries($id_lang, $active_countries = false, $active_carriers = false, $contain_states = null)
+    {
+        if (!Validate::isBool($active_countries) || !Validate::isBool($active_carriers)) {
+            die(Tools::displayError());
+        }
 
-		$result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('
-			SELECT cl.*,c.*, cl.`name` AS country, zz.`name` AS zone
-			FROM `'._DB_PREFIX_.'country` c
-			LEFT JOIN `'._DB_PREFIX_.'country_lang` cl ON (c.`id_country` = cl.`id_country` AND cl.`id_lang` = '.(int)$id_lang.')
-			INNER JOIN (`'._DB_PREFIX_.'carrier_zone` cz INNER JOIN `'._DB_PREFIX_.'carrier` cr ON ( cr.id_carrier = cz.id_carrier AND cr.deleted = 0 '.
-			($active_carriers ? 'AND cr.active = 1) ' : ') ').'
-			LEFT JOIN `'._DB_PREFIX_.'zone` zz ON cz.id_zone = zz.id_zone) ON zz.`id_zone` = c.`id_zone`
-			WHERE 1
-			'.($active_countries ? 'AND c.active = 1' : '').'
-			'.(!is_null($contain_states) ? 'AND c.`contains_states` = '.(int)$contain_states : '').'
-			ORDER BY cl.name ASC');
+        $states = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS(
+            'SELECT s.*
+            FROM `'._DB_PREFIX_.'state` s
+            ORDER BY s.`name` ASC'
+        );
 
-		$countries = array();
-		foreach ($result as &$country)
-			$countries[$country['id_country']] = $country;
-		foreach ($states as &$state)
-			if (isset($countries[$state['id_country']])) /* Does not keep the state if its country has been disabled and not selected */
-				if ($state['active'] == 1)
-					$countries[$state['id_country']]['states'][] = $state;
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS(
+            'SELECT cl.*,c.*, cl.`name` AS country, zz.`name` AS zone
+            FROM `'._DB_PREFIX_.'country` c
+            LEFT JOIN `'._DB_PREFIX_.'country_lang` cl ON (c.`id_country` = cl.`id_country` AND cl.`id_lang` = '.(int)$id_lang.')
+            INNER JOIN (`'._DB_PREFIX_.'carrier_zone` cz INNER JOIN `'._DB_PREFIX_.'carrier` cr ON ( cr.id_carrier = cz.id_carrier AND cr.deleted = 0 '.
+            ($active_carriers ? 'AND cr.active = 1) ' : ') ').'
+            LEFT JOIN `'._DB_PREFIX_.'zone` zz ON cz.id_zone = zz.id_zone) ON zz.`id_zone` = c.`id_zone`
+            WHERE 1
+            '.($active_countries ? 'AND c.active = 1' : '').'
+            '.(!is_null($contain_states) ? 'AND c.`contains_states` = '.(int)$contain_states : '').'
+            ORDER BY cl.name ASC'
+        );
 
-		return $countries;
-	}
+        $countries = array();
+        foreach ($result as &$country) {
+            $countries[$country['id_country']] = $country;
+        }
+        foreach ($states as &$state) {
+            if (isset($countries[$state['id_country']])) { /* Does not keep the state if its country has been disabled and not selected */
+                if ($state['active'] == 1) {
+                    $countries[$state['id_country']]['states'][] = $state;
+                }
+            }
+        }
+
+        return $countries;
+    }
 }

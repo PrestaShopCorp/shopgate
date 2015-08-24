@@ -17,18 +17,6 @@
  * @license   http://opensource.org/licenses/AFL-3.0 Academic Free License ("AFL"), in the version 3.0
  */
 
-/**
- * default relative path to config
- */
-const DEFAULT_RELATIVE_CONFIG_PATH = '/../../config/config.inc.php';
-
-require_once(dirname($_SERVER['SCRIPT_FILENAME']).'/classes/Helper.php');
-require_once(ShopgateHelper::normalizePath(array(dirname($_SERVER['SCRIPT_FILENAME']), DEFAULT_RELATIVE_CONFIG_PATH)));
-
-require_once(dirname($_SERVER['SCRIPT_FILENAME']).'/shopgate.php');
-
-$controller = new FrontController();
-$controller->init();
-
-$plugin = new ShopgatePluginPrestashop();
-$response = $plugin->handleRequest($_POST);
+abstract class ShopgateModObjectModel extends ObjectModel
+{
+}

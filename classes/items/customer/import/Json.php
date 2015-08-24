@@ -19,122 +19,125 @@
 
 class ShopgateItemsCustomerImportJson extends ShopgateItemsCustomer
 {
-	/**
-	 * @param $user
-	 * @param $pass
-	 * @param ShopgateCustomer $customer
-	 * @throws ShopgateLibraryException
-	 */
-	public function registerCustomer($user, $pass, ShopgateCustomer $customer)
-	{
-		if (!Validate::isEmail($user))
-			throw new ShopgateLibraryException(ShopgateLibraryException::PLUGIN_REGISTER_CUSTOMER_ERROR, 'E-mail Address validation error', true);
-		
-		if ($pass && !Validate::isPasswd($pass))
-			throw new ShopgateLibraryException(ShopgateLibraryException::PLUGIN_REGISTER_CUSTOMER_ERROR, 'Password validation error', true);
-		
-		/** @var CustomerCore | Customer $customerModel */
-		$customerModel = new Customer();
-		
-		if ($customerModel->getByEmail($user))
-			throw new ShopgateLibraryException(ShopgateLibraryException::REGISTER_USER_ALREADY_EXISTS);
+    /**
+     * @param $user
+     * @param $pass
+     * @param ShopgateCustomer $customer
+     * @throws ShopgateLibraryException
+     */
+    public function registerCustomer($user, $pass, ShopgateCustomer $customer)
+    {
+        if (!Validate::isEmail($user)) {
+            throw new ShopgateLibraryException(ShopgateLibraryException::PLUGIN_REGISTER_CUSTOMER_ERROR, 'E-mail Address validation error', true);
+        }
 
-		$customerModel->active 		= 1;
-		$customerModel->lastname 	= $customer->getLastName();
-		$customerModel->firstname 	= $customer->getFirstName();
-		$customerModel->email 		= $user;
-		$customerModel->passwd 		= Tools::encrypt($pass);
-		$customerModel->id_gender 	= $this->mapGender($customer->getGender());
-		$customerModel->birthday 	= $customer->getBirthday();
-		$customerModel->newsletter 	= $customer->getNewsletterSubscription();
+        if ($pass && !Validate::isPasswd($pass)) {
+            throw new ShopgateLibraryException(ShopgateLibraryException::PLUGIN_REGISTER_CUSTOMER_ERROR, 'Password validation error', true);
+        }
 
-		$validateMessage = $customerModel->validateFields(false, true);
+        /** @var CustomerCore | Customer $customerModel */
+        $customerModel = new Customer();
 
-		if ($validateMessage !== true)
-			throw new ShopgateLibraryException(
-				ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER, $validateMessage, true
-			);
+        if ($customerModel->getByEmail($user)) {
+            throw new ShopgateLibraryException(ShopgateLibraryException::REGISTER_USER_ALREADY_EXISTS);
+        }
 
-		$customerModel->save();
+        $customerModel->active         = 1;
+        $customerModel->lastname     = $customer->getLastName();
+        $customerModel->firstname     = $customer->getFirstName();
+        $customerModel->email         = $user;
+        $customerModel->passwd         = Tools::encrypt($pass);
+        $customerModel->id_gender     = $this->mapGender($customer->getGender());
+        $customerModel->birthday     = $customer->getBirthday();
+        $customerModel->newsletter     = $customer->getNewsletterSubscription();
 
-		/**
-		 * addresses
-		 */
-		foreach ($customer->getAddresses() as $address)
-			$this->createAddress($address, $customerModel);
+        $validateMessage = $customerModel->validateFields(false, true);
 
-		return $customerModel->id;
-	}
+        if ($validateMessage !== true) {
+            throw new ShopgateLibraryException(ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER, $validateMessage, true);
+        }
 
-	/**
-	 * @param $address
-	 * @param $customer
-	 * @return int
-	 * @throws ShopgateLibraryException
-	 */
-	public function createAddress($address, $customer)
-	{
-		/** @var AddressCore | Address $addressModel */
-		$addressItem = new Address();
+        $customerModel->save();
 
-		$addressItem->id_customer 	= $customer->id;
-		$addressItem->lastname 		= $address->getLastName();
-		$addressItem->firstname 	= $address->getFirstName();
+        /**
+         * addresses
+         */
+        foreach ($customer->getAddresses() as $address) {
+            $this->createAddress($address, $customerModel);
+        }
 
-		if ($address->getCompany())
-			$addressItem->company 	= $address->getCompany();
+        return $customerModel->id;
+    }
 
-		$addressItem->address1 		= $address->getStreet1();
+    /**
+     * @param $address
+     * @param $customer
+     * @return int
+     * @throws ShopgateLibraryException
+     */
+    public function createAddress($address, $customer)
+    {
+        /** @var AddressCore | Address $addressModel */
+        $addressItem = new Address();
 
-		if ($address->getStreet2())
-			$addressItem->address2 	= $address->getStreet2();
+        $addressItem->id_customer     = $customer->id;
+        $addressItem->lastname         = $address->getLastName();
+        $addressItem->firstname     = $address->getFirstName();
 
-		$addressItem->city 			= $address->getCity();
-		$addressItem->postcode 		= $address->getZipcode();
+        if ($address->getCompany()) {
+            $addressItem->company = $address->getCompany();
+        }
 
-		if (!Validate::isLanguageIsoCode($address->getCountry()))
-		{
-			$customer->delete();
-			throw new ShopgateLibraryException(
-				ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER,
-				'invalid country code: '.$address->getCountry(), true
-			);
-		}
+        $addressItem->address1         = $address->getStreet1();
 
-		$addressItem->id_country = Country::getByIso($address->getCountry());
+        if ($address->getStreet2()) {
+            $addressItem->address2 = $address->getStreet2();
+        }
 
-		if ($address->getState() && !Validate::isStateIsoCode($address->getState()))
-		{
-			$customer->delete();
-			throw new ShopgateLibraryException(
-				ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER,
-				'invalid state code: '.$address->getState(), true);
-		}
-		else
-			$addressItem->id_state = State::getIdByIso($address->getState());
+        $addressItem->city             = $address->getCity();
+        $addressItem->postcode         = $address->getZipcode();
 
-		$addressItem->alias = $address->getIsDeliveryAddress()
-			? $this->getModule()->l('Default delivery address')
-			: $this->getModule()->l('Default');
+        if (!Validate::isLanguageIsoCode($address->getCountry())) {
+            $customer->delete();
+            throw new ShopgateLibraryException(
+                ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER,
+                'invalid country code: '.$address->getCountry(),
+                true
+            );
+        }
 
-		$addressItem->alias = $address->getIsInvoiceAddress()
-			? $this->getModule()->l('Default invoice address')
-			: $this->getModule()->l('Default');
+        $addressItem->id_country = Country::getByIso($address->getCountry());
 
-		$addressItem->phone 		= $address->getPhone();
-		$addressItem->phone_mobile 	= $address->getMobile();
+        if ($address->getState() && !Validate::isStateIsoCode($address->getState())) {
+            $customer->delete();
+            throw new ShopgateLibraryException(
+                ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER,
+                'invalid state code: '.$address->getState(),
+                true
+            );
+        } else {
+            $addressItem->id_state = State::getIdByIso($address->getState());
+        }
 
-		$validateMessage 			= $addressItem->validateFields(false, true);
+        $addressItem->alias = $address->getIsDeliveryAddress() ? $this->getModule()->l('Default delivery address') : $this->getModule()->l('Default');
 
-		if ($validateMessage !== true)
-		{
-			$customer->delete();
-			throw new ShopgateLibraryException(
-				ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER, $validateMessage, true
-			);
-		}
+        $addressItem->alias = $address->getIsInvoiceAddress() ? $this->getModule()->l('Default invoice address') : $this->getModule()->l('Default');
 
-		$addressItem->save();
-		return $addressItem->id;
-	}
+        $addressItem->phone         = $address->getPhone();
+        $addressItem->phone_mobile     = $address->getMobile();
+
+        $validateMessage             = $addressItem->validateFields(false, true);
+
+        if ($validateMessage !== true) {
+            $customer->delete();
+            throw new ShopgateLibraryException(
+                ShopgateLibraryException::REGISTER_FAILED_TO_ADD_USER,
+                $validateMessage,
+                true
+            );
+        }
+
+        $addressItem->save();
+        return $addressItem->id;
+    }
 }

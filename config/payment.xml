@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <payments>
-	<default>
-		<key>MOBILE_PAYMENT</key>
-		<name>Mobile Payment</name>
-		<blocked>PS_OS_SHOPGATE</blocked>
-		<blocked_paid>PS_OS_SHOPGATE</blocked_paid>
-		<not_blocked_paid>PS_OS_PAYMENT</not_blocked_paid>
-		<not_blocked_not_paid>PS_OS_PREPARATION</not_blocked_not_paid> <!-- special case -->
-		<blocked_shipped>PS_OS_SHOPGATE</blocked_shipped>
-		<not_blocked_shipped>PS_OS_PREPARATION</not_blocked_shipped>
-	</default>
-	<cod>
-		<key>COD</key>
-		<name>Cash on Delivery</name>
-		<not_blocked_paid>PS_OS_PREPARATION</not_blocked_paid>
-		<not_blocked_not_paid>PS_OS_PREPARATION</not_blocked_not_paid>
-	</cod>
-	<paypal>
-		<key>PAYPAL</key>
-		<name>PayPal</name>
-		<not_blocked_not_paid>PS_OS_PAYPAL</not_blocked_not_paid>
-	</paypal>
-	<prepay>
-		<key>PREPAY</key>
-		<name>Bankwire</name>
-		<not_blocked_not_paid>PS_OS_BANKWIRE</not_blocked_not_paid>
-	</prepay>
+    <default>
+        <key>MOBILE_PAYMENT</key>
+        <name>Mobile Payment</name>
+        <blocked>PS_OS_SHOPGATE</blocked>
+        <blocked_paid>PS_OS_SHOPGATE</blocked_paid>
+        <not_blocked_paid>PS_OS_PAYMENT</not_blocked_paid>
+        <not_blocked_not_paid>PS_OS_PREPARATION</not_blocked_not_paid> <!-- special case -->
+        <blocked_shipped>PS_OS_SHOPGATE</blocked_shipped>
+        <not_blocked_shipped>PS_OS_PREPARATION</not_blocked_shipped>
+    </default>
+    <cod>
+        <key>COD</key>
+        <name>Cash on Delivery</name>
+        <not_blocked_paid>PS_OS_PREPARATION</not_blocked_paid>
+        <not_blocked_not_paid>PS_OS_PREPARATION</not_blocked_not_paid>
+    </cod>
+    <paypal>
+        <key>PAYPAL</key>
+        <name>PayPal</name>
+        <not_blocked_not_paid>PS_OS_PAYPAL</not_blocked_not_paid>
+    </paypal>
+    <prepay>
+        <key>PREPAY</key>
+        <name>Bankwire</name>
+        <not_blocked_not_paid>PS_OS_BANKWIRE</not_blocked_not_paid>
+    </prepay>
 </payments>

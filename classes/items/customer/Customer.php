@@ -19,82 +19,85 @@
 
 class ShopgateItemsCustomer extends ShopgateItemsAbstract
 {
-	/**
-	 * @var array
-	 */
-	protected $gender = array(
-		ShopgateCustomer::MALE => 1,
-		ShopgateCustomer::FEMALE => 2
-	);
+    /**
+     * @var array
+     */
+    protected $gender = array(
+        ShopgateCustomer::MALE => 1,
+        ShopgateCustomer::FEMALE => 2
+    );
 
-	/**
-	 * @var array
-	 */
-	public static $validationAddressFields = array(
-		'id_customer',
-		'alias',
-		'company',
-		'lastname',
-		'firstname',
-		'vat_number',
-		'address1',
-		'address2',
-		'postcode',
-		'city',
-		'other',
-		'phone',
-		'prone_mobile'
-	);
+    /**
+     * @var array
+     */
+    public static $validationAddressFields = array(
+        'id_customer',
+        'alias',
+        'company',
+        'lastname',
+        'firstname',
+        'vat_number',
+        'address1',
+        'address2',
+        'postcode',
+        'city',
+        'other',
+        'phone',
+        'prone_mobile'
+    );
 
-	/**
-	 * @param $emil
-	 * @param $password
-	 * @return int
-	 */
-	public function getCustomerIdByEmailAndPassword($emil, $password)
-	{
-		return (int)Db::getInstance()->getValue('
-			SELECT `id_customer`
-			FROM `'._DB_PREFIX_.'customer`
-			WHERE
-			`active` AND
-			`email` = \''.pSQL($emil).'\' AND
-			`passwd` = \''.Tools::encrypt($password).'\' AND
-			`deleted` = 0
-			AND `is_guest` = 0');
-	}
+    /**
+     * @param $emil
+     * @param $password
+     * @return int
+     */
+    public function getCustomerIdByEmailAndPassword($emil, $password)
+    {
+        return (int)Db::getInstance()->getValue('
+            SELECT `id_customer`
+            FROM `'._DB_PREFIX_.'customer`
+            WHERE
+            `active` AND
+            `email` = \''.pSQL($emil).'\' AND
+            `passwd` = \''.Tools::encrypt($password).'\' AND
+            `deleted` = 0
+            AND `is_guest` = 0');
+    }
 
-	/**
-	 * shopgate / prestashop :-(
-	 *
-	 * @param $value
-	 * @return bool|int|string
-	 */
-	public function mapGender($value)
-	{
-		foreach ($this->gender as $key => $val)
-			if (ctype_digit($value))
-				if ($val == $value)
-					return $key;
-				else;//no statement
-			else
-				if ($key == $value)
-					return $val;
-		
-		return false;
-	}
+    /**
+     * shopgate / prestashop :-(
+     *
+     * @param $value
+     * @return bool|int|string
+     */
+    public function mapGender($value)
+    {
+        foreach ($this->gender as $key => $val) {
+            if (ctype_digit($value)) {
+                if ($val == $value) {
+                    return $key;
+                }
+            } else if ($key == $value) {
+                return $val;
+            }
+        }
 
-	/**
-	 * @param AddressCore $addressOne
-	 * @param AddressCore $addressTwo
-	 * @return bool
-	 */
-	public static function compareAddresses($addressOne, $addressTwo)
-	{
-		foreach (ShopgateItemsCustomer::$validationAddressFields as $field)
-			if ($addressOne->$field != $addressTwo->$field)
-				return false;
+        return false;
+    }
 
-		return true;
-	}
+    /**
+     * @param AddressCore $addressOne
+     * @param AddressCore $addressTwo
+     * @return bool
+     */
+    public static function compareAddresses($addressOne, $addressTwo)
+    {
+        foreach (ShopgateItemsCustomer::$validationAddressFields as $field) {
+            if ($addressOne->$field != $addressTwo->$field) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

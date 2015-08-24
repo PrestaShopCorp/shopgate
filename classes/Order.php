@@ -17,185 +17,143 @@
  * @license   http://opensource.org/licenses/AFL-3.0 Academic Free License ("AFL"), in the version 3.0
  */
 
-if (version_compare(_PS_VERSION_, '1.5.0', '<'))
-{
-	abstract class ShopgateModObjectModel extends ObjectModel
-	{
-		
-		/** List of field types */
-		const TYPE_INT 			= 1;
-		const TYPE_BOOL 		= 2;
-		const TYPE_STRING 		= 3;
-		const TYPE_FLOAT 		= 4;
-		const TYPE_DATE 		= 5;
-		const TYPE_HTML 		= 6;
-		const TYPE_NOTHING 		= 7;
-		const TYPE_SQL 			= 8;
-		
-		/** List of data to format */
-		const FORMAT_COMMON 	= 1;
-		const FORMAT_LANG 		= 2;
-		const FORMAT_SHOP 		= 3;
-		
-		/** List of association types */
-		const HAS_ONE 			= 1;
-		const HAS_MANY 			= 2;
-		
-		/** @var string SQL Table name */
-		protected $table 		= 'shopgate_order';
-		
-		/** @var string SQL Table identifier */
-		protected $identifier 	= 'id_shopgate_order';
-		
-		public $total_shipping;
-		
-		public static function updateShippingPrice($price)
-		{
-			$sql = 'UPDATE '._DB_PREFIX_.'delivery AS d SET price="'.$price.'" WHERE d.id_carrier = '.(int)Configuration::get('SG_CARRIER_ID');
-			return Db::getInstance()->execute($sql);
-		}
-	}
+if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
+    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModel.php');
+} else {
+    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelDummy.php');
 }
-else
-{
-	abstract class ShopgateModObjectModel extends ObjectModel
-	{
-	}
-}
-
-
 
 class ShopgateOrderPrestashop extends ShopgateModObjectModel
 {
-	
-	public $id_shopgate_order;
-	public $id_cart;
-	public $id_order;
-	public $order_number;
-	public $tracking_number;
-	public $shipping_service = 'OTHER';
-	public $shipping_cost;
-	public $shop_number;
-	public $comments;
-	public $status;
-	public $shopgate_order;
-	
-	public static $definition = array(
-		'table' 	=> 'shopgate_order',
-		'primary' 	=> 'id_shopgate_order',
-		'fields' 	=> array(
-			'order_number' 		=> array(
-				'type' => self::TYPE_INT,
-				'validate' => 'isNullOrUnsignedId',
-				'copy_post' => false
-			),
-			'id_cart' 			=> array(
-				'type' => self::TYPE_INT,
-				'validate' => 'isUnsignedInt',
-				'required' => true
-			),
-			'shopgate_order' 	=> array('type' => self::TYPE_STRING),
-			'id_order' 			=> array('type' => self::TYPE_INT),
-			'tracking_number' 	=> array('type' => self::TYPE_STRING),
-			'shipping_service' 	=> array('type' => self::TYPE_STRING),
-			'shipping_cost' 	=> array('type' => self::TYPE_FLOAT),
-			'shop_number' 		=> array('type' => self::TYPE_INT),
-			'comments' 			=> array('type' => self::TYPE_STRING),
-			'status' 			=> array('type' => self::TYPE_INT)
-		)
-	);
-	
-	public function getFields()
-	{
-		if (parent::validateFields())
-			ShopgateLogger::getInstance()->log('Validation for shopgate database fields invalid', ShopgateLogger::LOGTYPE_ERROR);
-		
-		$fields 					= array();
-		$fields['id_cart'] 			= (int)($this->id_cart);
-		$fields['id_order'] 		= (int)($this->id_order);
-		$fields['shopgate_order'] 	= pSQL(base64_encode(serialize($this->shopgate_order)));
-		$fields['order_number'] 	= pSQL($this->order_number);
-		$fields['shipping_service'] = pSQL($this->shipping_service);
-		$fields['shipping_cost'] 	= (float)($this->shipping_cost);
-		$fields['shop_number'] 		= pSQL($this->shop_number);
-		$fields['comments'] 		= pSQL($this->comments, true);
-		$fields['status'] 			= (int)($this->status);
-		return $fields;
-	}
-	
-	
-	/**
-	 * @param int $id_cart
-	 * @return ShopgateOrderPrestashop
-	 */
-	public static function loadByCartId($id_cart = 0)
-	{
-		return new ShopgateOrderPrestashop(ShopgateOrderPrestashop::getIdShopgateOrderByFilter('id_cart', $id_cart));
-	}
-	
-	/**
-	 * @param int $id_order
-	 * @return ShopgateOrderPrestashop
-	 */
-	public static function loadByOrderId($id_order = 0)
-	{
-		return new ShopgateOrderPrestashop(ShopgateOrderPrestashop::getIdShopgateOrderByFilter('id_order', $id_order));
-	}
-	
-	/**
-	 * @param int $order_number
-	 * @return ShopgateOrderPrestashop
-	 */
-	public static function loadByOrderNumber($order_number = 0)
-	{
-		$result = ShopgateOrderPrestashop::getIdShopgateOrderByFilter('order_number', $order_number);
-		return new ShopgateOrderPrestashop($result);
-	}
-	
-	/**
-	 * @param $key
-	 * @param $value
-	 * @return mixed
-	 */
-	protected static function getIdShopgateOrderByFilter($key, $value)
-	{
-		if (version_compare(_PS_VERSION_, '1.5.0', '<'))
-		{
-			$query = 'SELECT id_shopgate_order 
-						FROM '._DB_PREFIX_.'shopgate_order 
-						WHERE '.$key.'='.$value;
-			return Db::getInstance()->getValue($query);
-		}
-		
-		$query = new DbQuery();
-		$query->select(ShopgateOrderPrestashop::$definition['primary']);
-		$query->from(ShopgateOrderPrestashop::$definition['table']);
-		$query->where($key.' = \''.pSQL($value).'\'');
-		
-		return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($query);
-	}
-	
-	/**
-	 * @param CartCore $cart
-	 * @param ShopgateOrder $order
-	 * @param int $shopNumber
-	 * @return bool
-	 */
-	public function fillFromOrder($cart, $order, $shopNumber)
-	{
-		$this->id_cart 			= $cart->id;
-		$this->order_number 	= $order->getOrderNumber();
-		$this->shipping_cost 	= $order->getAmountShipping();
-		$this->shipping_service = Configuration::get('SG_SHIPPING_SERVICE');
-		$this->shop_number 		= $shopNumber;
-		$this->shopgate_order 	= $order;
-	}
-	
-	/**
-	 * @param ShopgateOrder $order
-	 */
-	public function updateFromOrder($order)
-	{
-		$this->shopgate_order = serialize($order);
-	}
+
+    public $id_shopgate_order;
+    public $id_cart;
+    public $id_order;
+    public $order_number;
+    public $tracking_number;
+    public $shipping_service = 'OTHER';
+    public $shipping_cost;
+    public $shop_number;
+    public $comments;
+    public $status;
+    public $shopgate_order;
+
+    public static $definition = array(
+        'table'     => 'shopgate_order',
+        'primary'     => 'id_shopgate_order',
+        'fields'     => array(
+            'order_number'         => array(
+                'type' => self::TYPE_INT,
+                'validate' => 'isNullOrUnsignedId',
+                'copy_post' => false
+            ),
+            'id_cart'             => array(
+                'type' => self::TYPE_INT,
+                'validate' => 'isUnsignedInt',
+                'required' => true
+            ),
+            'shopgate_order'     => array('type' => self::TYPE_STRING),
+            'id_order'             => array('type' => self::TYPE_INT),
+            'tracking_number'     => array('type' => self::TYPE_STRING),
+            'shipping_service'     => array('type' => self::TYPE_STRING),
+            'shipping_cost'     => array('type' => self::TYPE_FLOAT),
+            'shop_number'         => array('type' => self::TYPE_INT),
+            'comments'             => array('type' => self::TYPE_STRING),
+            'status'             => array('type' => self::TYPE_INT)
+        )
+    );
+
+    public function getFields()
+    {
+        if (parent::validateFields()) {
+            ShopgateLogger::getInstance()->log('Validation for shopgate database fields invalid', ShopgateLogger::LOGTYPE_ERROR);
+        }
+
+        $fields                     = array();
+        $fields['id_cart']             = (int)($this->id_cart);
+        $fields['id_order']         = (int)($this->id_order);
+        $fields['shopgate_order']     = pSQL(base64_encode(serialize($this->shopgate_order)));
+        $fields['order_number']     = pSQL($this->order_number);
+        $fields['shipping_service'] = pSQL($this->shipping_service);
+        $fields['shipping_cost']     = (float)($this->shipping_cost);
+        $fields['shop_number']         = pSQL($this->shop_number);
+        $fields['comments']         = pSQL($this->comments, true);
+        $fields['status']             = (int)($this->status);
+        return $fields;
+    }
+
+
+    /**
+     * @param int $id_cart
+     * @return ShopgateOrderPrestashop
+     */
+    public static function loadByCartId($id_cart = 0)
+    {
+        return new ShopgateOrderPrestashop(ShopgateOrderPrestashop::getIdShopgateOrderByFilter('id_cart', $id_cart));
+    }
+
+    /**
+     * @param int $id_order
+     * @return ShopgateOrderPrestashop
+     */
+    public static function loadByOrderId($id_order = 0)
+    {
+        return new ShopgateOrderPrestashop(ShopgateOrderPrestashop::getIdShopgateOrderByFilter('id_order', $id_order));
+    }
+
+    /**
+     * @param int $order_number
+     * @return ShopgateOrderPrestashop
+     */
+    public static function loadByOrderNumber($order_number = 0)
+    {
+        $result = ShopgateOrderPrestashop::getIdShopgateOrderByFilter('order_number', $order_number);
+        return new ShopgateOrderPrestashop($result);
+    }
+
+    /**
+     * @param $key
+     * @param $value
+     * @return mixed
+     */
+    protected static function getIdShopgateOrderByFilter($key, $value)
+    {
+        if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
+            $query = 'SELECT id_shopgate_order
+                        FROM '._DB_PREFIX_.'shopgate_order
+                        WHERE '.pSQL($key).'='.pSQL($value);
+            return Db::getInstance()->getValue($query);
+        }
+
+        $query = new DbQuery();
+        $query->select(ShopgateOrderPrestashop::$definition['primary']);
+        $query->from(ShopgateOrderPrestashop::$definition['table']);
+        $query->where(pSQL($key).' = \''.pSQL($value).'\'');
+
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($query);
+    }
+
+    /**
+     * @param CartCore $cart
+     * @param ShopgateOrder $order
+     * @param int $shopNumber
+     * @return bool
+     */
+    public function fillFromOrder($cart, $order, $shopNumber)
+    {
+        $this->id_cart             = $cart->id;
+        $this->order_number     = $order->getOrderNumber();
+        $this->shipping_cost     = $order->getAmountShipping();
+        $this->shipping_service = Configuration::get('SG_SHIPPING_SERVICE');
+        $this->shop_number         = $shopNumber;
+        $this->shopgate_order     = $order;
+    }
+
+    /**
+     * @param ShopgateOrder $order
+     */
+    public function updateFromOrder($order)
+    {
+        $this->shopgate_order = serialize($order);
+    }
 }

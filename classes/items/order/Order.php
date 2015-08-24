@@ -19,51 +19,48 @@
 
 class ShopgateItemsOrder extends ShopgateItemsAbstract
 {
-	/**
-	 * @param $plugin
-	 */
-	public function __construct($plugin)
-	{
-		parent::__construct($plugin);
+    /**
+     * @param $plugin
+     */
+    public function __construct($plugin)
+    {
+        parent::__construct($plugin);
 
-		/** @var CartCore $cart */
-		$cart = new Cart();
-		$cart->id_lang = $this->getPlugin()->getLanguageId();
-		$cart->id_currency = $this->getPlugin()->getContext()->currency->id;
-		$cart->recyclable = 0;
-		$cart->gift = 0;
+        /** @var CartCore $cart */
+        $cart = new Cart();
+        $cart->id_lang = $this->getPlugin()->getLanguageId();
+        $cart->id_currency = $this->getPlugin()->getContext()->currency->id;
+        $cart->recyclable = 0;
+        $cart->gift = 0;
 
-		$this->getPlugin()->getContext()->cart = $cart;
+        $this->getPlugin()->getContext()->cart = $cart;
 
-		/**
-		 * check / create shopgate carrier
-		 */
-		/** @var CarrierCore $sgCarrier */
-		$sgCarrier = new Carrier(Configuration::get('SG_CARRIER_ID'));
+        /**
+         * check / create shopgate carrier
+         */
+        /** @var CarrierCore $sgCarrier */
+        $sgCarrier = new Carrier(Configuration::get('SG_CARRIER_ID'));
 
-		if (!$sgCarrier->id)
-		{
-			$shopgateShippingModel = new ShopgateShipping(new ShopGate());
-			$shopgateShippingModel->createShopgateCarrier();
-		}
+        if (!$sgCarrier->id) {
+            $shopgateShippingModel = new ShopgateShipping(new ShopGate());
+            $shopgateShippingModel->createShopgateCarrier();
+        }
 
-		/**
-		 * check all needed table columns
-		 */
-		$shopGate = new ShopGate();
+        /**
+         * check all needed table columns
+         */
+        $shopGate = new ShopGate();
 
-		if (!$shopGate->updateTables())
-			throw new ShopgateLibraryException(
-				ShopgateLibraryException::PLUGIN_DATABASE_ERROR,
-				sprintf('Cannot update shopgate_order_table')
-			);
-	}
+        if (!$shopGate->updateTables()) {
+            throw new ShopgateLibraryException(ShopgateLibraryException::PLUGIN_DATABASE_ERROR, sprintf('Cannot update shopgate_order_table'));
+        }
+    }
 
-	/**
-	 * @return Cart|CartCore
-	 */
-	public function getCart()
-	{
-		return $this->getPlugin()->getContext()->cart;
-	}
+    /**
+     * @return Cart|CartCore
+     */
+    public function getCart()
+    {
+        return $this->getPlugin()->getContext()->cart;
+    }
 }

@@ -289,17 +289,17 @@
             </div>
         </div>
 
-		<div class="form-group">
-			<label class="control-label col-xs-2">{l s='Price type' mod='shopgate'}</label>
-			<div class="col-xs-10">
-				<select name="settings[SHOPGATE_EXPORT_PRICE_TYPE]">
-					{foreach from=$product_export_price_type key=key item=name}
-						<option value="{$key|escape:'html':'UTF-8'}"
-								{if $key == $settings.SHOPGATE_EXPORT_PRICE_TYPE}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
-					{/foreach}
-				</select>
-			</div>
-		</div>
+        <div class="form-group">
+            <label class="control-label col-xs-2">{l s='Price type' mod='shopgate'}</label>
+            <div class="col-xs-10">
+                <select name="settings[SHOPGATE_EXPORT_PRICE_TYPE]">
+                    {foreach from=$product_export_price_type key=key item=name}
+                        <option value="{$key|escape:'html':'UTF-8'}"
+                                {if $key == $settings.SHOPGATE_EXPORT_PRICE_TYPE}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
 
         <div class="form-group native-carrier">
             <label class="control-label col-xs-2">{l s='Mobile carrier' mod='shopgate'}</label>
