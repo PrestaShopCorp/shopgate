@@ -101,6 +101,16 @@ class ShopgatePayment
     }
 
     /**
+     * @param $order_state_var
+     *
+     * @return int
+     */
+    protected function getSpecificOrderStateId($order_state_var)
+    {
+        return (int)(defined($order_state_var) ? constant($order_state_var) : (defined('_'.$order_state_var.'_') ? constant('_'.$order_state_var.'_') : Configuration::get($order_state_var)));
+    }
+
+    /**
      * @param $order ShopgateOrder
      * @param bool $isNew
      * @return array()
@@ -116,12 +126,12 @@ class ShopgatePayment
              */
             case true:
                 if ($order->getIsShippingBlocked()) {
-                    array_push($orderStateIds, Configuration::get($method['blocked']));
+                    array_push($orderStateIds, $this->getSpecificOrderStateId($method['blocked']));
                 } else {
                     if ($order->getIsPaid()) {
-                        array_push($orderStateIds, Configuration::get($method['not_blocked_paid']));
+                        array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_paid']));
                     } else {
-                        array_push($orderStateIds, Configuration::get($method['not_blocked_not_paid']));
+                        array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_not_paid']));
                     }
                 }
                 break;
@@ -133,7 +143,7 @@ class ShopgatePayment
                  * payment is updated
                  */
                 if ($order->getUpdatePayment() && $order->getIsPaid() && !$order->getIsShippingBlocked()) {
-                    array_push($orderStateIds, Configuration::get($method['not_blocked_paid']));
+                    array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_paid']));
                 }
 
                 /**
@@ -142,10 +152,10 @@ class ShopgatePayment
                 if ($order->getUpdateShipping()) {
                     switch ($order->getIsShippingBlocked()) {
                         case false:
-                            array_push($orderStateIds, Configuration::get($method['not_blocked_shipped']));
+                            array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_shipped']));
                             break;
                         case true:
-                            array_push($orderStateIds, Configuration::get($method['blocked_shipped']));
+                            array_push($orderStateIds, $this->getSpecificOrderStateId($method['blocked_shipped']));
                             break;
                     }
                 }

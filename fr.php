@@ -126,3 +126,5 @@ $_MODULE['<{shopgate}prestashop>configurations_f16525381cfc0415eba02587566de1cb'
 $_MODULE['<{shopgate}prestashop>configurations_3ac64dc4e3a75611f07817ad926dd963'] = 'Export des produits';
 $_MODULE['<{shopgate}prestashop>configurations_c9cc8cce247e49bae79f15173ce97354'] = 'Enregistrer';
 $_MODULE['<{shopgate}prestashop>configurations_60ac30664b378e80d3d5eceb60bc9ee9'] = 'Exportez la catégorie d\'accueil du plus haut niveau';
+$_MODULE['<{shopgate}prestashop>configurations_5d9960280f37f29c0f6bf59d33a30e83'] = 'Veuillez choisir le statut de la commande qui représente l\'annulation des ordres dans le système';
+$_MODULE['<{shopgate}prestashop>configurations_0c2ddbf78e9a51a90f2b367836e134b9'] = '- pas de sélection -';

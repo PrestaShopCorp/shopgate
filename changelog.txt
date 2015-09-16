@@ -1,4 +1,16 @@
+
 '''English'''
+
+'''Version 2.9.49'''
+* optimized get items query
+* added selected shipping method to check_cart
+* fix get installed plugins on ping method for invalid plugins
+* added check cart error messages from system
+* fixed missing shipping costs on imported orders
+* fixed compatibility issues for older Prestashop versions 1.4.x.x
+* increased performance of XML uids product export
+* fixed product import issue because of invalid field "tax percent"
+* cancellations are supported now
 
 '''Version 2.9.48'''
 * fixing mobile redirect for older versions

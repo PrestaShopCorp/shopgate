@@ -46,6 +46,7 @@ class ShopgateItemsCustomerExportJson extends ShopgateItemsCustomer
         $shopgateCustomer->setBirthday($customer->birthday);
         $shopgateCustomer->setMail($customer->email);
         $shopgateCustomer->setNewsletterSubscription($customer->newsletter);
+        $shopgateCustomer->setCustomerToken(ShopgateCustomerPrestashop::getToken($customer));
 
         $addresses = array();
 

@@ -50,7 +50,8 @@ class ShopgateSettings
             'SG_EXPORT_ROOT_CATEGORIES' => 0,
             'SG_CARRIER_MAPPING' => array(),
             'SG_MOBILE_CARRIER' => array(),
-            'SHOPGATE_EXPORT_PRICE_TYPE' => Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET
+            'SHOPGATE_EXPORT_PRICE_TYPE' => Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET,
+            'SG_CANCELLATION_STATUS' => 0,
         );
 
         return $configuration;

@@ -202,7 +202,7 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
             $validateOder = $this->getModule()->validateOrder(
                 $this->getCart()->id,
                 $idOrderState,
-                $this->getCart()->getOrderTotal(true, Cart::BOTH),
+                $this->getCart()->getOrderTotal(true, defined('Cart::BOTH') ? Cart::BOTH : 3),
                 $paymentModel->getPaymentTitleByKey($order->getPaymentMethod()),
                 null,
                 array(),
@@ -211,15 +211,15 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
                 $this->getCart()->secure_key
             );
 
-            if (version_compare(_PS_VERSION_, '1.4.0.2', '<')) {
-                $this->log('PS < 1.4.0.2: update shipping and payment cost', ShopgateLogger::LOGTYPE_DEBUG);
-                // in versions below 1.4.0.2 the shipping and payment costs must be updated after the order
+            if (version_compare(_PS_VERSION_, '1.5.0.0', '<') && (int)$this->getModule()->currentOrder > 0
+                && $order->getShippingType() != ShopgateShipping::DEFAULT_PLUGIN_API_KEY && $order->getShippingInfos()->getAmount() > 0) {
+                ShopgateLogger::log('PS < 1.5.0.0: update shipping and payment cost', ShopgateLogger::LOGTYPE_DEBUG);
+                // in versions below 1.5.0.0 the shipping and payment costs must be updated after the order was imported
                 /** @var OrderCore $updateShopgateOrder */
-                $updateShopgateOrder                     = new Order($order->currentOrder);
-                $updateShopgateOrder->total_paid        = $order->getAmountComplete();
-                $updateShopgateOrder->total_paid_real   = $order->getAmountComplete();
-                $updateShopgateOrder->total_products_wt = $order->getAmountItems();
-                $updateShopgateOrder->total_shipping    = $order->getAmountShipping() + $order->getAmountShopPayment();
+                $updateShopgateOrder                     = new Order($this->getModule()->currentOrder);
+                $updateShopgateOrder->total_shipping     = $order->getAmountShipping() + $order->getAmountShopPayment();
+                $updateShopgateOrder->total_paid        += $order->getAmountShipping() + $order->getAmountShopPayment();
+                $updateShopgateOrder->total_paid_real   += $order->getAmountShipping() + $order->getAmountShopPayment();
                 $updateShopgateOrder->update();
             }
 

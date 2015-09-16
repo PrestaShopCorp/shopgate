@@ -124,9 +124,9 @@ class ShopgateItemsCustomerImportJson extends ShopgateItemsCustomer
         $addressItem->alias = $address->getIsInvoiceAddress() ? $this->getModule()->l('Default invoice address') : $this->getModule()->l('Default');
 
         $addressItem->phone         = $address->getPhone();
-        $addressItem->phone_mobile     = $address->getMobile();
+        $addressItem->phone_mobile  = $address->getMobile();
 
-        $validateMessage             = $addressItem->validateFields(false, true);
+        $validateMessage            = $addressItem->validateFields(false, true);
 
         if ($validateMessage !== true) {
             $customer->delete();

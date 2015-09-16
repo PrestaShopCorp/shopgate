@@ -44,22 +44,12 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
     {
         $products = array();
 
-        $productItems = Product::getProducts(
-            $this->getPlugin()->getLanguageId(),
-            $offset,
-            $limit,
-            'id_product',
-            'DESC',
-            false,
-            true
-        );
-
-        foreach ($productItems as $product) {
+        foreach ($this->getProductIds($limit, $offset, $uids) as $product) {
             /*
              * prepare data
              */
             $this->currentProduct = new Product($product['id_product'], true, $this->getPlugin()->getLanguageId());
-
+            $resultProduct = get_object_vars($this->currentProduct);
             $this->currentAdditionalInfo = array();
 
             $this->addAdditionalInfo('currency', $this->getPlugin()->getContext()->currency->iso_code);
@@ -89,23 +79,45 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
              * manufacturer
              */
             $manufacturerItem = new Shopgate_Model_Catalog_Manufacturer();
-            $manufacturerItem->setUid($product['id_manufacturer']);
-            $manufacturerItem->setTitle($product['manufacturer_name']);
+            $manufacturerItem->setUid($this->currentProduct->id_manufacturer);
+            $manufacturerItem->setTitle($this->currentProduct->manufacturer_name);
             $this->addAdditionalInfo('manufacturer', $manufacturerItem);
 
             /**
              * visibility
              */
             $visibilityItem = new Shopgate_Model_Catalog_Visibility();
-            $visibilityItem->setLevel($this->mapVisibility($product['visibility']));
+            $visibilityItem->setLevel($this->mapVisibility($this->currentProduct->visibility));
             $this->addAdditionalInfo('visibility', $visibilityItem);
 
-            $product['_additional_info'] = $this->currentAdditionalInfo;
+            $resultProduct['_additional_info'] = $this->currentAdditionalInfo;
+            $resultProduct['id_product'] = $resultProduct['id'];
 
-            array_push($products, $product);
+            array_push($products, $resultProduct);
         }
 
         return $products;
+    }
+
+    /**
+     * @param null  $limit
+     * @param null  $offset
+     * @param array $uids
+     *
+     * @return array
+     * @throws PrestaShopDatabaseException
+     */
+    protected function getProductIds($limit = null, $offset = null, array $uids = array())
+    {
+        $select = sprintf('SELECT
+                        id_product
+                        FROM %sproduct
+                        %s
+                        ORDER BY id_product ASC
+                        %s
+                        ', _DB_PREFIX_, count($uids) > 0 ? 'WHERE id_product IN ('.implode(',', $uids).')' : '', is_int($limit) ? 'LIMIT '.$limit.(is_int($offset) ? ' OFFSET '.$offset : '') : '');
+
+        return Db::getInstance()->ExecuteS($select);
     }
 
     /**

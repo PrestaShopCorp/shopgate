@@ -21,6 +21,8 @@ class ShopgateItemsOrder extends ShopgateItemsAbstract
 {
     /**
      * @param $plugin
+     *
+     * @throws ShopgateLibraryException
      */
     public function __construct($plugin)
     {
@@ -62,5 +64,99 @@ class ShopgateItemsOrder extends ShopgateItemsAbstract
     public function getCart()
     {
         return $this->getPlugin()->getContext()->cart;
+    }
+
+    /**
+     * @param int    $customerId
+     * @param int    $limit
+     * @param int    $offset
+     * @param string $orderDateFrom
+     * @param string $sortOrder
+     *
+     * @return mixed
+     */
+    public function getCustomerOrders($customerId, $limit = 10, $offset = 0, $orderDateFrom = '', $sortOrder = 'created_desc')
+    {
+        $orders = Order::getCustomerOrders($customerId);
+        $orders = $this->sortCoreOrders($orders, $sortOrder);
+
+        $orderCount = 0;
+        $result     = array();
+
+        if ($orderDateFrom != '') {
+            $dateTime      = new DateTime($orderDateFrom);
+            $orderDateFrom = $dateTime->getTimestamp();
+        } else {
+            $orderDateFrom = false;
+        }
+
+        foreach ($orders as $order) {
+            /**
+             * handle offset
+             */
+            if ($orderCount < $offset) {
+                $orderCount++;
+                continue;
+            }
+
+            /**
+             * handle date from
+             */
+            if ($orderDateFrom) {
+                $dateTime             = new DateTime($order['date_add']);
+                $orderDateFromCompare = $dateTime->getTimestamp();
+
+                if ($orderDateFromCompare < $orderDateFrom) {
+                    $orderCount++;
+                    continue;
+                }
+            }
+
+            /**
+             * handle limit
+             */
+            if ($orderCount == $limit) {
+                break;
+            }
+
+            array_push($result, $order);
+            $orderCount++;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array  $orders
+     * @param string $sort
+     *
+     * @return mixed
+     */
+    protected function sortCoreOrders($orders, $sort)
+    {
+        switch ($sort) {
+            case 'created_asc':
+                $this->arraySortByColumn($orders, 'date_add', SORT_ASC);
+                break;
+            case 'created_desc':
+                $this->arraySortByColumn($orders, 'date_add', SORT_DESC);
+                break;
+        }
+
+        return $orders;
+    }
+
+    /**
+     * @param     $arr
+     * @param     $col
+     * @param int $dir
+     */
+    protected function arraySortByColumn(&$arr, $col, $dir = SORT_ASC)
+    {
+        $sortCol = array();
+        foreach ($arr as $key => $row) {
+            $sortCol[$key] = $row[$col];
+        }
+        array_multisort($sortCol, $dir, $arr);
     }
 }

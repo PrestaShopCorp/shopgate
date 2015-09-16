@@ -193,6 +193,19 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
         }
 
         /**
+         * add selected carrier is given
+         */
+        if ($cart->getShippingType() == ShopgateShipping::DEFAULT_PLUGIN_API_KEY) {
+            if (is_array(unserialize($cart->getShippingInfos()->getInternalShippingInfo()))) {
+                $carrierInfo = unserialize($cart->getShippingInfos()->getInternalShippingInfo());
+                $carrierId   = isset($carrierInfo['carrierId']) ? $carrierInfo['carrierId'] : false;
+                if ($carrierId) {
+                    $this->getPlugin()->getContext()->cart->id_carrier = (int)$carrierId;
+                }
+            }
+        }
+
+        /**
          * don't change the direction
          */
         $result = array(
@@ -322,19 +335,18 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                  */
                 switch ($addItemResult) {
                     case -1:
-                        $resultItem->setQtyBuyable(
-                            $attributeId ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity
-                        );
+                        $resultItem->setQtyBuyable($attributeId ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity);
+
+                        $minimalQuantity = ($attributeId) ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity;
+
                         $this->_addItemException(
                             $resultItem,
-                            ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_UNDER_MINIMUM_QUANTITY
+                            ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_UNDER_MINIMUM_QUANTITY,
+                            sprintf(Tools::displayError('You must add %d minimum quantity'), $minimalQuantity)
                         );
                         break;
                     default:
-                        $this->_addItemException(
-                            $resultItem,
-                            ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE
-                        );
+                        $this->_addItemException($resultItem, ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE, Tools::displayError('There isn\'t enough product in stock.'));
                         break;
                 }
 
@@ -591,13 +603,21 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
      * add a item exception
      *
      * @param ShopgateCartItem $item
-     * @param $code
-     * @param mixed $message
+     * @param                  $code
+     * @param mixed            $message
      */
     protected function _addItemException(ShopgateCartItem $item, $code, $message = false)
     {
         $item->setError($code);
-        $item->setErrorText(ShopgateLibraryException::getMessageFor($code).($message ? ' - '.$message : ''));
+
+        /**
+         * add custom message
+         */
+        if ($message) {
+            $item->setErrorText($message);
+        } else {
+            $item->setErrorText(ShopgateLibraryException::getMessageFor($code));
+        }
     }
 
     /**

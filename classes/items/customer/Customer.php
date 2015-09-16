@@ -47,21 +47,18 @@ class ShopgateItemsCustomer extends ShopgateItemsAbstract
     );
 
     /**
-     * @param $emil
+     * @param $email
      * @param $password
      * @return int
      */
-    public function getCustomerIdByEmailAndPassword($emil, $password)
+    public function getCustomerIdByEmailAndPassword($email, $password)
     {
-        return (int)Db::getInstance()->getValue('
-            SELECT `id_customer`
-            FROM `'._DB_PREFIX_.'customer`
-            WHERE
-            `active` AND
-            `email` = \''.pSQL($emil).'\' AND
-            `passwd` = \''.Tools::encrypt($password).'\' AND
-            `deleted` = 0
-            AND `is_guest` = 0');
+        /** @var CustomerCore $customer */
+        $customer = new Customer();
+        /** @var CustomerCore $authentication */
+        $authentication = $customer->getByEmail(trim($email), trim($password));
+
+        return $authentication->id;
     }
 
     /**

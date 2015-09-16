@@ -29,7 +29,7 @@ if (!defined('_PS_VERSION_')) {
 /**
  * define shopgate version
  */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.48');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.49');
 
 /**
  * define module dir
@@ -58,6 +58,7 @@ require_once(SHOPGATE_DIR.'classes/Helper.php');
 require_once(SHOPGATE_DIR.'classes/Shipping.php');
 require_once(SHOPGATE_DIR.'classes/Payment.php');
 require_once(SHOPGATE_DIR.'classes/Order.php');
+require_once(SHOPGATE_DIR.'classes/Customer.php');
 
 /**
  * abstract
@@ -94,6 +95,7 @@ require_once(SHOPGATE_DIR.'classes/items/customer/import/Json.php');
  */
 require_once(SHOPGATE_DIR.'classes/items/order/Order.php');
 require_once(SHOPGATE_DIR.'classes/items/order/input/Json.php');
+require_once(SHOPGATE_DIR.'classes/items/order/export/Json.php');
 
 /**
  * cart
@@ -142,7 +144,7 @@ class ShopGate extends PaymentModule
             $this->tab = 'mobile';
         }
 
-        $this->version = '2.9.48';
+        $this->version = '2.9.49';
         $this->author = 'Shopgate';
         $this->module_key = '';
 
@@ -171,6 +173,8 @@ class ShopGate extends PaymentModule
             'header',
             'adminOrder',
             'updateOrderStatus',
+            'updateQuantity',
+            'actionUpdateQuantity',
         );
 
         if (version_compare(_PS_VERSION_, '1.5.0.0', '>=')) {
@@ -488,6 +492,7 @@ class ShopGate extends PaymentModule
         $this->context->smarty->assign('configCss', $configCss);
         $this->context->smarty->assign('product_export_price_type', $priceTypes);
         $this->context->smarty->assign('native_carriers', $resultNativeCarriers);
+        $this->context->smarty->assign('order_state_mapping', $orderStates);
 
         return $this->display(__FILE__, 'views/templates/admin/configurations.tpl');
     }
@@ -664,7 +669,83 @@ class ShopGate extends PaymentModule
         $adminImageLocalPath = _PS_IMG_DIR_.'admin/'.$imageFileName;
         return file_exists($adminImageLocalPath) ? $adminImageUrl : '';
     }
+    
+    /**
+     * Prestashop had not prepared a hook point for partial 
+     * cancellations yet. In this case we need to use a hook point
+     * where we are able to access the needed data.
+     * 
+     * @param $param
+     */
+    public function hookActionAdminControllerSetMedia($param)
+    {
+        if (Tools::isSubmit('partialRefund')) {
+            $this->callUpdateQuantityHook($param);
+        }
+    }
+    
+    /**
+     * In Prestashop Versions lowe than 1.5 there is only one database table
+     * used for ("ps_hook") hook points. E.g. the hook "UpdateQuantity" is now
+     * called "ActionUpdateQuantity"
+     * 
+     * @param $param
+     */
+    public function hookActionUpdateQuantity($param)
+    {
+        $this->callUpdateQuantityHook($param);
+    }
+    
+    /**
+     * This is a wrapper function which will be called
+     * from the hooks "hookActionUpdateQuantity" or
+     * "hookActionAdminControllerSetMedia"
+     * 
+     * @param $param
+     */
+    private function callUpdateQuantityHook($param)
+    {
+        if (!$this->cancellationRequestAlreadySent) {
+            $this->cancellationRequestAlreadySent = true;
+            $this->hookUpdateQuantity($param);
+        }
+    }
+    
+    /**
+     * This method is called when the order was edited
+     *
+     * @param $param
+     */
+    public function hookUpdateQuantity($param)
+    {
+        // prevent prestashop for executing the hook point twice
+        if ((version_compare(_PS_VERSION_, '1.5.0.0', '<')) && !empty($param['product']) && (!($param['product'] instanceof ProductCore))) {
+            return;
+        }
+        // In this case we only need that hook if
+        // the quantity of an order product changed
+        // in version < 1.5.0 the posted field is named cancelProduct
 
+        $idOrder = Tools::getValue('id_order');
+        $action = Tools::getValue('action');
+        $cancelProduct = Tools::getValue('cancelProduct');
+
+        if (!empty($idOrder)
+            && (
+                (!empty($action) && $action == 'editProductOnOrder')
+                || (!empty($cancelProduct))
+                || Tools::isSubmit('partialRefund')
+            )
+        ) {
+            $sgOrder = ShopgateOrderPrestashop::loadByOrderId($idOrder);
+            $message = '';
+            
+            // check if this order is a shopgate order
+            if (!is_null($sgOrder->order_number) && !is_null($sgOrder->id_order)) {
+                $sgOrder->cancelOrder($message, true);
+            }
+        }
+    }
 
     /**
      * This method gets called when the order status is changed in the admin area of the Prestashop backend
@@ -678,6 +759,7 @@ class ShopGate extends PaymentModule
         $shopgateOrder             = ShopgateOrderPrestashop::loadByOrderId($id_order);
 
         $shopgateConfig         = new ShopgateConfigPrestashop();
+        $cancellationStatus     = Configuration::get('SG_CANCELLATION_STATUS');
 
         $shopgateBuilder         = new ShopgateBuilder($shopgateConfig);
         $shopgateMerchantApi     = $shopgateBuilder->buildMerchantApi();
@@ -704,6 +786,12 @@ class ShopGate extends PaymentModule
             if (!empty($shippedOrderStates[$newOrderState->id])) {
                 $shopgateMerchantApi->setOrderShippingCompleted($shopgateOrder->order_number);
             }
+    
+            $message = '';
+            if ($cancellationStatus == $newOrderState->id) {
+                $shopgateOrder->cancelOrder($message);
+            }
+            
         } catch (ShopgateMerchantApiException $e) {
             $msg              = new Message();
             $msg->message     = $this->l('On order state').': '.$orderState->name.' - '.$this->l('Shopgate status was not updated because of following error').': '.$e->getMessage();
@@ -732,7 +820,15 @@ class ShopGate extends PaymentModule
         if (!$this->insertColumnToTable(_DB_PREFIX_.'shopgate_order', 'shopgate_order', 'text NULL DEFAULT NULL', 'status')) {
             return false;
         }
-
+    
+        if (!$this->insertColumnToTable(_DB_PREFIX_.'shopgate_order', 'is_cancellation_sent_to_shopgate', "int(1) NOT NULL DEFAULT '0'", 'shopgate_order')) {
+            return false;
+        }
+        
+        if (!$this->insertColumnToTable(_DB_PREFIX_.'shopgate_order', 'reported_cancellations', 'text NULL DEFAULT NULL', 'is_cancellation_sent_to_shopgate')) {
+            return false;
+        }
+        
         return true;
 
     }
