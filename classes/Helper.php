@@ -186,7 +186,7 @@ class ShopgateHelper
 
         foreach ($needed as $need) {
             if (!in_array($need, get_loaded_extensions())) {
-                array_push($missing, $need);
+                $missing[] = $need;
             }
         }
 

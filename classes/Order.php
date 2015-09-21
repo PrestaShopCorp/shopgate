@@ -18,9 +18,9 @@
  */
 
 if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
-    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModel.php');
+    require_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModel.php');
 } else {
-    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelDummy.php');
+    require_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelDummy.php');
 }
 
 class ShopgateOrderPrestashop extends ShopgateModObjectModel
@@ -349,11 +349,14 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
                     } else {
                         $qty = $refundQtyData[$pItem['id_order_detail']];
                     }
-                    
+
+                    // try to retrieve an $_POST['cancelQuantity'] array
+                    $cancelQuantity = Tools::getValue('cancelQuantity', null);
+
                     if (version_compare(_PS_VERSION_, '1.5.0', '>=') && empty($qty)) {
                         $qty = $sgItem->getQuantity() - $pItem['product_quantity'];
-                    } elseif (!empty($_POST['cancelQuantity'][$pItem['id_order_detail']]) && empty($qty)) {
-                        $qty = $_POST['cancelQuantity'][$pItem['id_order_detail']];
+                    } elseif (!empty($cancelQuantity[$pItem['id_order_detail']]) && empty($qty)) {
+                        $qty = $cancelQuantity[$pItem['id_order_detail']];
                         $fromHook = true;
                     }
                     

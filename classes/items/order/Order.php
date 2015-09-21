@@ -119,7 +119,7 @@ class ShopgateItemsOrder extends ShopgateItemsAbstract
                 break;
             }
 
-            array_push($result, $order);
+            $result[] = $order;
             $orderCount++;
         }
 

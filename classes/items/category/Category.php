@@ -46,7 +46,7 @@ class ShopgateItemsCategory extends ShopgateItemsAbstract
              * skip root categories
              */
             if ($categoryInfo->is_root_category && !$exportRootCategories) {
-                array_push($skippedRootCategories, $categoryInfo->id_category);
+                $skippedRootCategories[] = $categoryInfo->id_category;
                 continue;
             }
 
@@ -72,7 +72,7 @@ class ShopgateItemsCategory extends ShopgateItemsAbstract
             $categoryItem['url_image'] = $categoryImageUrl;
             $categoryItem['order_index'] = $categoryInfo->position;
 
-            array_push($categoryItems, $categoryItem);
+            $categoryItems[] = $categoryItem;
         }
 
         /**
@@ -106,7 +106,7 @@ class ShopgateItemsCategory extends ShopgateItemsAbstract
             }
 
             $categoryItem['order_index'] = $categoryPositionData[$key] - $categoryNewPositionData[$key];
-            array_push($result, $categoryItem);
+            $result[] = $categoryItem;
         }
 
         return $result;

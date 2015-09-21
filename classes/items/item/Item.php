@@ -93,7 +93,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
             $resultProduct['_additional_info'] = $this->currentAdditionalInfo;
             $resultProduct['id_product'] = $resultProduct['id'];
 
-            array_push($products, $resultProduct);
+            $products[] = $resultProduct;
         }
 
         return $products;
@@ -324,7 +324,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                     }
                 }
 
-                array_push($result, $childItemItem);
+                $result[] = $childItemItem;
             }
         }
 
@@ -426,7 +426,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                         break;
                 }
 
-                array_push($result, $inputItem);
+                $result[] = $inputItem;
             }
         }
 
@@ -456,8 +456,8 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                     $attributeItem = new Shopgate_Model_Catalog_AttributeGroup();
                     $attributeItem->setUid($attribute['id_attribute_group']);
                     $attributeItem->setLabel($attribute['group']);
-                    array_push($result, $attributeItem);
-                    array_push($addedGroup, $attribute['id_attribute_group']);
+                    $result[] = $attributeItem;
+                    $addedGroup[] = $attribute['id_attribute_group'];
                 }
             }
         }
@@ -480,14 +480,14 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
             $identifierItem = new Shopgate_Model_Catalog_Identifier();
             $identifierItem->setType('UPC');
             $identifierItem->setValue($product->upc);
-            array_push($result, $identifierItem);
+            $result[] = $identifierItem;
         }
 
         if (property_exists($product, 'ean13')) {
             $identifierItem = new Shopgate_Model_Catalog_Identifier();
             $identifierItem->setType('EAN');
             $identifierItem->setValue($product->ean13);
-            array_push($result, $identifierItem);
+            $result[] = $identifierItem;
         }
 
         return $result;
@@ -507,7 +507,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                 $tagItem = new Shopgate_Model_Catalog_Tag();
                 $tagItem->setUid($number);
                 $tagItem->setValue($value);
-                array_push($result, $tagItem);
+                $result[] = $tagItem;
             }
         }
 
@@ -599,7 +599,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
             $propertyItemObject->setUid($property['id_feature']);
             $propertyItemObject->setLabel($property['name']);
             $propertyItemObject->setValue($property['value']);
-            array_push($result, $propertyItemObject);
+            $result[] = $propertyItemObject;
         }
 
         return $result;
@@ -642,7 +642,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                 $categoryPathItem->addItem($path['level_depth'], $path['name']);
             }
 
-            array_push($result, $categoryPathItem);
+            $result[] = $categoryPathItem;
         }
 
         return $result;
@@ -730,7 +730,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                 $imageItem->setTitle($imageInfo['legend']);
             }
 
-            array_push($result, $imageItem);
+            $result[] = $imageItem;
         }
 
         return $result;

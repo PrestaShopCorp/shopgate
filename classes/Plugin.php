@@ -478,12 +478,12 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
         $shopInfo['plugins_installed'] = array();
 
         foreach (Module::getModulesInstalled() as $module) {
-            array_push($shopInfo['plugins_installed'], array(
+            $shopInfo['plugins_installed'][] = array(
                 'id'      => $module['id_module'],
                 'name'    => $module['name'],
                 'version' => $module['version'],
                 'active'  => $module['active'] ? 1 : 0
-            ));
+            );
         }
 
         return $shopInfo;

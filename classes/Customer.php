@@ -18,9 +18,9 @@
  */
 
 if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
-    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelCustomer.php');
+    require_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelCustomer.php');
 } else {
-    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelCustomerDummy.php');
+    require_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelCustomerDummy.php');
 }
 
 class ShopgateCustomerPrestashop extends ShopgateModObjectModelCustomer

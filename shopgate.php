@@ -169,16 +169,16 @@ class ShopGate extends PaymentModule
         /**
          * hooks
          */
-        $_registerHooks = array(
+        $registerHooks = array(
             'header',
             'adminOrder',
             'updateOrderStatus',
             'updateQuantity',
-            'actionUpdateQuantity',
         );
 
         if (version_compare(_PS_VERSION_, '1.5.0.0', '>=')) {
-            $_registerHooks[] = 'displayMobileHeader';
+            $registerHooks[] = 'displayMobileHeader';
+            $registerHooks[] = 'actionUpdateQuantity';
         }
 
         /**
@@ -218,28 +218,7 @@ class ShopGate extends PaymentModule
         /**
          * register hooks
          */
-        ShopGate::log('INSTALLATION - registering hookpoints', ShopgateLogger::LOGTYPE_DEBUG);
-
-        foreach ($_registerHooks as $hook) {
-            ShopGate::log(
-                sprintf('INSTALLATION - registering hookpoint %s', $hook),
-                ShopgateLogger::LOGTYPE_DEBUG
-            );
-
-            $result = $this->registerHook($hook);
-            if (!$result) {
-                ShopGate::log(
-                    sprintf('$this->registerHook("%s") failed; return value: %s', $hook, var_export($result, true)),
-                    ShopgateLogger::LOGTYPE_ERROR
-                );
-                return false;
-            }
-        }
-
-        /**
-         * install data
-         */
-        ShopGate::log('INSTALLATION - fetching database object', ShopgateLogger::LOGTYPE_DEBUG);
+        $this->registerHooks($registerHooks);
 
         /**
          * install tables
@@ -295,10 +274,37 @@ class ShopGate extends PaymentModule
     }
 
     /**
+     * @param array $registerHooks
+     *
+     * @return bool
+     */
+    public function registerHooks(array $registerHooks)
+    {
+        ShopGate::log('INSTALLATION - registering hookpoints', ShopgateLogger::LOGTYPE_DEBUG);
+
+        foreach ($registerHooks as $hook) {
+            ShopGate::log(
+                sprintf('INSTALLATION - registering hookpoint %s', $hook),
+                ShopgateLogger::LOGTYPE_DEBUG
+            );
+
+            $result = $this->registerHook($hook);
+            if (!$result) {
+                ShopGate::log(
+                    sprintf('$this->registerHook("%s") failed; return value: %s', $hook, var_export($result, true)),
+                    ShopgateLogger::LOGTYPE_ERROR
+                );
+                return false;
+            }
+        }
+    }
+
+    /**
      * @return bool
      */
     protected function installTables()
     {
+        ShopGate::log('INSTALLATION - fetching database object', ShopgateLogger::LOGTYPE_DEBUG);
         $db = Db::getInstance(true);
 
         if (!file_exists(dirname(__FILE__).'/'.self::INSTALL_SQL_FILE)) {
@@ -321,7 +327,6 @@ class ShopGate extends PaymentModule
         }
 
         return true;
-
     }
 
     /**
@@ -456,13 +461,13 @@ class ShopGate extends PaymentModule
                     $nativeCarrier['mobile_used'] = 0;
                 }
 
-                array_push($resultNativeCarriers, $nativeCarrier);
+                $resultNativeCarriers[] = $nativeCarrier;
             }
         }
 
 
         $shopgateCarrier = new Carrier(Configuration::get('SG_CARRIER_ID'), $lang->id);
-        array_push($carrierList, array('name' => $shopgateCarrier->name, 'id_carrier' => $shopgateCarrier->id));
+        $carrierList[] = array('name' => $shopgateCarrier->name, 'id_carrier' => $shopgateCarrier->id);
 
         /**
          * price types
@@ -685,7 +690,7 @@ class ShopGate extends PaymentModule
     }
     
     /**
-     * In Prestashop Versions lowe than 1.5 there is only one database table
+     * In Prestashop Versions lower than 1.5 there is only one database table
      * used for ("ps_hook") hook points. E.g. the hook "UpdateQuantity" is now
      * called "ActionUpdateQuantity"
      * 

@@ -91,7 +91,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
             }
 
             if (empty($attributeId) && !empty($productId) && $product->hasAttributes()) {
-                array_push($result, $cartItem);
+                $result[] = $cartItem;
                 continue;
             }
 
@@ -133,7 +133,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 if ($invalidAttribute) {
                     $cartItem->setError(ShopgateLibraryException::UNKNOWN_ERROR_CODE);
                     $cartItem->setErrorText($message);
-                    array_push($result, $cartItem);
+                    $result[] = $cartItem;
                     continue;
                 }
             }
@@ -152,7 +152,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $cartItem->setErrorText(ShopgateLibraryException::getMessageFor($cartItem->getError()));
             }
 
-            array_push($result, $cartItem);
+            $result[] = $cartItem;
         }
 
         return $result;
@@ -259,7 +259,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $result->setNotValidMessage(Tools::displayError('This voucher does not exists.'));
             }
 
-            array_push($results, $result);
+            $results[] = $result;
         }
 
         return $results;
@@ -313,7 +313,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
              */
             if (!$this->_validateProduct($product, $attributeId)) {
                 $this->_addItemException($resultItem, ShopgateLibraryException::CART_ITEM_PRODUCT_NOT_FOUND, sprintf('ProductId #%s AttributeId #%s', $productId, $attributeId));
-                array_push($resultItems, $resultItem);
+                $resultItems[] = $resultItem;
                 continue;
             }
 
@@ -355,7 +355,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $resultItem->setQtyBuyable((int)$item->getQuantity());
             }
 
-            array_push($resultItems, $resultItem);
+            $resultItems[] = $resultItem;
         }
 
         return $resultItems;
@@ -439,7 +439,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $resultCarrier->setTaxPercent($carrierTax);
                 $resultCarrier->setInternalShippingInfo(serialize(array('carrierId' => $carrier['id_carrier'])));
 
-                array_push($resultsCarrier, $resultCarrier);
+                $resultsCarrier[] = $resultCarrier;
             }
         }
 

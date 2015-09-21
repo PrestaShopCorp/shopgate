@@ -126,12 +126,12 @@ class ShopgatePayment
              */
             case true:
                 if ($order->getIsShippingBlocked()) {
-                    array_push($orderStateIds, $this->getSpecificOrderStateId($method['blocked']));
+                    $orderStateIds[] = $this->getSpecificOrderStateId($method['blocked']);
                 } else {
                     if ($order->getIsPaid()) {
-                        array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_paid']));
+                        $orderStateIds[] = $this->getSpecificOrderStateId($method['not_blocked_paid']);
                     } else {
-                        array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_not_paid']));
+                        $orderStateIds[] = $this->getSpecificOrderStateId($method['not_blocked_not_paid']);
                     }
                 }
                 break;
@@ -143,7 +143,7 @@ class ShopgatePayment
                  * payment is updated
                  */
                 if ($order->getUpdatePayment() && $order->getIsPaid() && !$order->getIsShippingBlocked()) {
-                    array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_paid']));
+                    $orderStateIds[] = $this->getSpecificOrderStateId($method['not_blocked_paid']);
                 }
 
                 /**
@@ -152,10 +152,10 @@ class ShopgatePayment
                 if ($order->getUpdateShipping()) {
                     switch ($order->getIsShippingBlocked()) {
                         case false:
-                            array_push($orderStateIds, $this->getSpecificOrderStateId($method['not_blocked_shipped']));
+                            $orderStateIds[] = $this->getSpecificOrderStateId($method['not_blocked_shipped']);
                             break;
                         case true:
-                            array_push($orderStateIds, $this->getSpecificOrderStateId($method['blocked_shipped']));
+                            $orderStateIds[] = $this->getSpecificOrderStateId($method['blocked_shipped']);
                             break;
                     }
                 }

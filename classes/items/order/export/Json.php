@@ -81,7 +81,7 @@ class ShopgateItemsOrderExportJson extends ShopgateItemsOrder
             $order->setExtraCosts($this->_getExtraCost($orderCore));
             $order->setOrderTaxes($this->_getOrderTaxes());
 
-            array_push($this->_result, $order);
+            $this->_result[] = $order;
         }
 
         return $this->_result;
@@ -142,7 +142,7 @@ class ShopgateItemsOrderExportJson extends ShopgateItemsOrder
             $extraCost->setType('shipping');
             $extraCost->setAmount($orderCore->total_shipping_tax_excl);
             $extraCost->setTaxPercent($orderCore->carrier_tax_rate);
-            array_push($result, $extraCost);
+            $result[] = $extraCost;
         }
 
         return $result;
@@ -191,7 +191,7 @@ class ShopgateItemsOrderExportJson extends ShopgateItemsOrder
                 $this->_orderTaxes[$orderItemCore->tax_rate] = $taxInfoItem;
             }
 
-            array_push($result, $orderItem);
+            $result[] = $orderItem;
 
         }
 
@@ -225,7 +225,7 @@ class ShopgateItemsOrderExportJson extends ShopgateItemsOrder
             $resultItem->setAmountGross($cartRuleItem->value);
             $resultItem->setIsFreeShipping($cartRuleItem->free_shipping);
 
-            array_push($result, $resultItem);
+            $result[] = $resultItem;
         }
 
         return $result;
@@ -242,7 +242,7 @@ class ShopgateItemsOrderExportJson extends ShopgateItemsOrder
             $orderTaxItem->setLabel($orderTax['tax_name']);
             $orderTaxItem->setTaxPercent($taxPercent);
             $orderTaxItem->setAmount($orderTax['price_tax_excl']);
-            array_push($result, $orderTaxItem);
+            $result[] = $orderTaxItem;
         }
 
         return $result;
@@ -270,7 +270,7 @@ class ShopgateItemsOrderExportJson extends ShopgateItemsOrder
                 $deliveryNote->setTrackingNumber($orderCarrier->tracking_number ? $orderCarrier->tracking_number : null);
                 $deliveryNote->setShippingTime($orderCarrier->date_add);
 
-                array_push($result, $deliveryNote);
+                $result[] = $deliveryNote;
             }
         }
 
