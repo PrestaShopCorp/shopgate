@@ -193,6 +193,25 @@
 </div>
 
 <div class="panel panel-default">
+    <div class="panel-heading">{l s='Order' mod='shopgate'}</div>
+    <div class="panel-body">
+        <div class="form-group">
+            <label class="control-label col-xs-2">{l s='Cancellation status' mod='shopgate'}</label>
+            <div class="col-xs-10">
+                <select name="settings[SG_CANCELLATION_STATUS]">
+                    {foreach from=$order_state_mapping key=key item=name}
+                        <option value="{$key|escape:'htmlall':'UTF-8'}"
+                                {if $key == $settings.SG_CANCELLATION_STATUS}selected="selected"{/if}>{$name|escape:'htmlall':'UTF-8'}
+                        </option>
+                    {/foreach}
+                </select>
+                <span class="help-block">{l s='Please choose the order status that represents cancelled orders in your system' mod='shopgate'}</span>
+            </div>
+        </div>
+    </div>
+</div>
+    
+<div class="panel panel-default">
     <div class="panel-heading">{l s='Carrier mapping' mod='shopgate'}</div>
     <div class="panel-body">
         {foreach from=$shipping_service_list key=shipping_service_key item=shipping_service}

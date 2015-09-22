@@ -45,7 +45,7 @@ class ShopgateItemsItemExportXml extends Shopgate_Model_Catalog_Product
      */
     public function setTaxPercent()
     {
-        parent::setTaxPercent($this->getAdditionalInfo('tax_percent'));
+        parent::setTaxPercent((float)$this->getAdditionalInfo('tax_percent'));
     }
 
     /**

@@ -130,13 +130,13 @@
                                             </div>
                                         {/if}
 
-                                        {if count($apiOrder->jsonDecode($shopgateOrder->comments))}
+                                        {if is_array($orderComments)}
                                             <div class="form-group">
                                                 <label class="control-label col-xs-2"><strong>{l s='Comments' mod='shopgate'}
                                                         :</strong></label>
 
                                                 <div class="col-xs-10 form-value well">
-                                                    {foreach from=$apiOrder->jsonDecode($shopgateOrder->comments) item=comment}
+                                                    {foreach from=$orderComments item=comment}
                                                         <div>{$comment|escape:'htmlall':'UTF-8'}</div>
                                                     {/foreach}
                                                 </div>
