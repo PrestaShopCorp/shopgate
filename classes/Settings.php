@@ -50,7 +50,8 @@ class ShopgateSettings
             'SG_EXPORT_ROOT_CATEGORIES' => 0,
             'SG_CARRIER_MAPPING' => array(),
             'SG_MOBILE_CARRIER' => array(),
-            'SHOPGATE_EXPORT_PRICE_TYPE' => Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET
+            'SHOPGATE_EXPORT_PRICE_TYPE' => Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET,
+            'SG_CANCELLATION_STATUS' => 0,
         );
 
         return $configuration;
@@ -100,7 +101,7 @@ class ShopgateSettings
                 $group['id']         = $customerGroupsItem['id_group'];
                 $group['name']       = $customerGroupsItem['name'];
                 $group['is_default'] = $group['id'] == (int)Configuration::get('PS_GUEST_GROUP') ? true : false;
-                array_push($customerGroups, $group);
+                $customerGroups[] = $group;
             }
         }
 
@@ -121,7 +122,7 @@ class ShopgateSettings
                 $taxClass        = array ();
                 $taxClass['id']  = $productTaxClassItem['id_tax'];
                 $taxClass['key'] = $productTaxClassItem['name'];
-                array_push($productTaxClasses, $taxClass);
+                $productTaxClasses[] = $taxClass;
             }
         }
 
@@ -272,7 +273,7 @@ class ShopgateSettings
                 $resultTaxRate['state']                 = (!empty($state)) ? $country.'-'.$state : null;
 
                 if ($taxItem->active && Configuration::get('PS_TAX') == 1) {
-                    array_push($taxRates, $resultTaxRate);
+                    $taxRates[] = $resultTaxRate;
                 }
             }
         }
@@ -348,11 +349,11 @@ class ShopgateSettings
                     continue;
                 }
 
-                array_push($rule['tax_rates'], $resultTaxRate);
+                $rule['tax_rates'][] = $resultTaxRate;
             }
 
             if ($taxItem->active && Configuration::get('PS_TAX') == 1) {
-                array_push($taxRules, $rule);
+                $taxRules[] = $rule;
             }
         }
 
@@ -476,7 +477,7 @@ class ShopgateSettings
             if (is_array($country['states'])) {
                 $resultStates = array();
                 foreach ($country['states'] as $state) {
-                    array_push($resultStates, $state['iso_code']);
+                    $resultStates[] = $state['iso_code'];
                 }
             } else {
                 $resultStates = array (ShopgateShipping::CARRIER_CODE_ALL);
@@ -490,14 +491,14 @@ class ShopgateSettings
                 'state' => $state
             );
 
-            array_push($result['allowed_shipping_countries'], $item);
+            $result['allowed_shipping_countries'][] = $item;
         }
 
         foreach (Country::getCountries($module->context->language->id, true) as $country) {
             if (is_array($country['states'])) {
                 $resultStates = array();
                 foreach ($country['states'] as $state) {
-                    array_push($resultStates, $state['iso_code']);
+                    $resultStates[] = $state['iso_code'];
                 }
             } else {
                 $resultStates = array (ShopgateShipping::CARRIER_CODE_ALL);
@@ -512,7 +513,7 @@ class ShopgateSettings
                 'state' => $state
             );
 
-            array_push($result['allowed_address_countries'], $item);
+            $result['allowed_address_countries'][] = $item;
         }
 
         return $result;

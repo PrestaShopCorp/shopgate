@@ -44,20 +44,66 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
         include_once dirname(__FILE__).'/../backward_compatibility/backward.php';
         $this->config = new ShopgateConfigPrestashop();
     }
-
-    /**
-     * Executes a cron job with parameters.
-     *
-     * @param string $jobname The name of the job to execute.
-     * @param <string => mixed> $params Associative list of parameter names and values.
-     * @param string $message A reference to the variable the message is appended to.
-     * @param int $errorcount A reference to the error counter variable.
-     * @post $message contains a message of success or failure for the job.
-     * @post $errorcount contains the number of errors that occured during execution.
-     */
+    
     public function cron($jobname, $params, &$message, &$errorcount)
     {
-
+        switch ($jobname)
+        {
+            case 'cancel_orders':
+                $this->log("cron executed job '".$jobname."'", ShopgateLogger::LOGTYPE_DEBUG);
+                $cancellationStatus = ConfigurationCore::get('SG_CANCELLATION_STATUS');
+                
+                $select = sprintf(
+                    'SELECT '
+                    .(version_compare(_PS_VERSION_, '1.5.0', '>=')
+                        ? ' o.current_state,  '
+                        : ' o.id_order, ').
+                    ' so.id_shopgate_order from %sshopgate_order as so
+                        JOIN %sorders as o on so.id_order=o.id_order 
+                        WHERE so.is_cancellation_sent_to_shopgate = 0',
+                    _DB_PREFIX_,
+                    _DB_PREFIX_
+                );
+                $result = Db::getInstance()->ExecuteS($select);
+                
+                if (empty($result)) {
+                    $this->log('no orders to cancel found for shop:'.$this->config->getShopNumber(), ShopgateLogger::LOGTYPE_DEBUG);
+                    return;
+                }
+                
+                foreach ($result as $order) {
+                    $sgOrder = new ShopgateOrderPrestashop($order['id_shopgate_order']);
+                    
+                    if (is_string($sgOrder->order_number)) {
+                        $sgOrder->order_number = (int)$sgOrder->order_number;
+                    }
+                    
+                    if (version_compare(_PS_VERSION_, '1.5.0', '>=')) {
+                        $state = $order['current_state'];
+                    } else {
+                        $stateObject = OrderHistory::getLastOrderState($order['id_order']);
+                        $state = $stateObject->id;
+                    }
+                    
+                    if ($state == $cancellationStatus) {
+                        $sgOrder->cancelOrder($message);
+                    } else {
+                        $sgOrder->cancelOrder($message, true);
+                    }
+                }
+                
+                break;
+            
+            default:
+                $this->log("job '".$jobname."' not found", ShopgateLogger::LOGTYPE_ERROR);
+                throw new ShopgateLibraryException(
+                    ShopgateLibraryException::PLUGIN_CRON_UNSUPPORTED_JOB,
+                    'Job name: "'.
+                    $jobname.'"',
+                    true
+                );
+                break;
+        }
     }
 
     /**
@@ -294,7 +340,8 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
      */
     public function getOrders($customerToken, $customerLanguage, $limit = 10, $offset = 0, $orderDateFrom = '', $sortOrder = 'created_desc')
     {
-        // TODO: Implement getOrders() method.
+        $orderModel = new ShopgateItemsOrderExportJson($this);
+        return $orderModel->getOrders($customerToken, $customerLanguage, $limit, $offset, $orderDateFrom, $sortOrder);
     }
 
     /**
@@ -326,12 +373,7 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
     protected function createItems($limit = null, $offset = null, array $uids = array())
     {
         $itemsModel = new ShopgateItemsItem($this);
-
-        foreach ($itemsModel->getItems($limit, $offset) as $product) {
-            if (count($uids) > 0 && !in_array($product['id_product'], $uids)) {
-                continue;
-            }
-
+        foreach ($itemsModel->getItems($limit, $offset, $uids) as $product) {
             $row = new ShopgateItemsItemExportXml();
             $this->addItemModel($row->setItem($product)->generateData());
         }
@@ -435,10 +477,13 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
 
         $shopInfo['plugins_installed'] = array();
 
-        foreach (Module::getModulesOnDisk() as $module) {
-            if ($module->id != 0) {
-                array_push($shopInfo['plugins_installed'], array ('id' => $module->id, 'name' => $module->name, 'version' => $module->version, 'active' => $module->active ? 1 : 0));
-            }
+        foreach (Module::getModulesInstalled() as $module) {
+            $shopInfo['plugins_installed'][] = array(
+                'id'      => $module['id_module'],
+                'name'    => $module['name'],
+                'version' => $module['version'],
+                'active'  => $module['active'] ? 1 : 0
+            );
         }
 
         return $shopInfo;

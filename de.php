@@ -119,3 +119,5 @@ $_MODULE['<{shopgate}prestashop>configurations_398ccf8cf34c72fdae6ac112568abd2d'
 $_MODULE['<{shopgate}prestashop>configurations_3ac64dc4e3a75611f07817ad926dd963'] = 'Produktexport';
 $_MODULE['<{shopgate}prestashop>configurations_c9cc8cce247e49bae79f15173ce97354'] = 'Speichern';
 $_MODULE['<{shopgate}prestashop>configurations_60ac30664b378e80d3d5eceb60bc9ee9'] = '"Standardpfad"-Kategorien auf der obersten Ebene exportieren';
+$_MODULE['<{shopgate}prestashop>configurations_5d9960280f37f29c0f6bf59d33a30e83'] = 'Bitte wählen Sie den Bestellstatus der stornierte Bestellungen in Ihrem System kennzeichnet';
+$_MODULE['<{shopgate}prestashop>configurations_0c2ddbf78e9a51a90f2b367836e134b9'] = '- Keine Auswahl -';

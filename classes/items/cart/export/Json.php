@@ -91,7 +91,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
             }
 
             if (empty($attributeId) && !empty($productId) && $product->hasAttributes()) {
-                array_push($result, $cartItem);
+                $result[] = $cartItem;
                 continue;
             }
 
@@ -133,7 +133,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 if ($invalidAttribute) {
                     $cartItem->setError(ShopgateLibraryException::UNKNOWN_ERROR_CODE);
                     $cartItem->setErrorText($message);
-                    array_push($result, $cartItem);
+                    $result[] = $cartItem;
                     continue;
                 }
             }
@@ -152,7 +152,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $cartItem->setErrorText(ShopgateLibraryException::getMessageFor($cartItem->getError()));
             }
 
-            array_push($result, $cartItem);
+            $result[] = $cartItem;
         }
 
         return $result;
@@ -190,6 +190,19 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
             $this->getPlugin()->getContext()->cart->id_address_invoice = $this->_invoiceAddress->id;
             $this->getPlugin()->getContext()->cart->save();
+        }
+
+        /**
+         * add selected carrier is given
+         */
+        if ($cart->getShippingType() == ShopgateShipping::DEFAULT_PLUGIN_API_KEY) {
+            if (is_array(unserialize($cart->getShippingInfos()->getInternalShippingInfo()))) {
+                $carrierInfo = unserialize($cart->getShippingInfos()->getInternalShippingInfo());
+                $carrierId   = isset($carrierInfo['carrierId']) ? $carrierInfo['carrierId'] : false;
+                if ($carrierId) {
+                    $this->getPlugin()->getContext()->cart->id_carrier = (int)$carrierId;
+                }
+            }
         }
 
         /**
@@ -246,7 +259,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $result->setNotValidMessage(Tools::displayError('This voucher does not exists.'));
             }
 
-            array_push($results, $result);
+            $results[] = $result;
         }
 
         return $results;
@@ -300,7 +313,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
              */
             if (!$this->_validateProduct($product, $attributeId)) {
                 $this->_addItemException($resultItem, ShopgateLibraryException::CART_ITEM_PRODUCT_NOT_FOUND, sprintf('ProductId #%s AttributeId #%s', $productId, $attributeId));
-                array_push($resultItems, $resultItem);
+                $resultItems[] = $resultItem;
                 continue;
             }
 
@@ -322,19 +335,18 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                  */
                 switch ($addItemResult) {
                     case -1:
-                        $resultItem->setQtyBuyable(
-                            $attributeId ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity
-                        );
+                        $resultItem->setQtyBuyable($attributeId ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity);
+
+                        $minimalQuantity = ($attributeId) ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity;
+
                         $this->_addItemException(
                             $resultItem,
-                            ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_UNDER_MINIMUM_QUANTITY
+                            ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_UNDER_MINIMUM_QUANTITY,
+                            sprintf(Tools::displayError('You must add %d minimum quantity'), $minimalQuantity)
                         );
                         break;
                     default:
-                        $this->_addItemException(
-                            $resultItem,
-                            ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE
-                        );
+                        $this->_addItemException($resultItem, ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE, Tools::displayError('There isn\'t enough product in stock.'));
                         break;
                 }
 
@@ -343,7 +355,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $resultItem->setQtyBuyable((int)$item->getQuantity());
             }
 
-            array_push($resultItems, $resultItem);
+            $resultItems[] = $resultItem;
         }
 
         return $resultItems;
@@ -427,7 +439,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $resultCarrier->setTaxPercent($carrierTax);
                 $resultCarrier->setInternalShippingInfo(serialize(array('carrierId' => $carrier['id_carrier'])));
 
-                array_push($resultsCarrier, $resultCarrier);
+                $resultsCarrier[] = $resultCarrier;
             }
         }
 
@@ -591,13 +603,21 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
      * add a item exception
      *
      * @param ShopgateCartItem $item
-     * @param $code
-     * @param mixed $message
+     * @param                  $code
+     * @param mixed            $message
      */
     protected function _addItemException(ShopgateCartItem $item, $code, $message = false)
     {
         $item->setError($code);
-        $item->setErrorText(ShopgateLibraryException::getMessageFor($code).($message ? ' - '.$message : ''));
+
+        /**
+         * add custom message
+         */
+        if ($message) {
+            $item->setErrorText($message);
+        } else {
+            $item->setErrorText(ShopgateLibraryException::getMessageFor($code));
+        }
     }
 
     /**

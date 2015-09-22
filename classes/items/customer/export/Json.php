@@ -46,6 +46,7 @@ class ShopgateItemsCustomerExportJson extends ShopgateItemsCustomer
         $shopgateCustomer->setBirthday($customer->birthday);
         $shopgateCustomer->setMail($customer->email);
         $shopgateCustomer->setNewsletterSubscription($customer->newsletter);
+        $shopgateCustomer->setCustomerToken(ShopgateCustomerPrestashop::getToken($customer));
 
         $addresses = array();
 
@@ -73,7 +74,7 @@ class ShopgateItemsCustomerExportJson extends ShopgateItemsCustomer
                 $addressItem->setAddressType(ShopgateAddress::BOTH);
             }
 
-            array_push($addresses, $addressItem);
+            $addresses[] = $addressItem;
         }
 
         $shopgateCustomer->setAddresses($addresses);
@@ -90,7 +91,7 @@ class ShopgateItemsCustomerExportJson extends ShopgateItemsCustomer
                 $group = new ShopgateCustomerGroup();
                 $group->setId($groupItem->id);
                 $group->setName($groupItem->name);
-                array_push($customerGroups, $group);
+                $customerGroups[] = $group;
             }
         }
 

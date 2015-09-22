@@ -18,9 +18,9 @@
  */
 
 if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
-    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModel.php');
+    require_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModel.php');
 } else {
-    include_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelDummy.php');
+    require_once(_PS_MODULE_DIR_.'shopgate'.DIRECTORY_SEPARATOR.'classes'.DIRECTORY_SEPARATOR.'ModObjectModelDummy.php');
 }
 
 class ShopgateOrderPrestashop extends ShopgateModObjectModel
@@ -69,6 +69,23 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
             ShopgateLogger::getInstance()->log('Validation for shopgate database fields invalid', ShopgateLogger::LOGTYPE_ERROR);
         }
 
+        if ($this->shopgate_order instanceof ShopgateOrder) {
+            $this->shopgate_order = pSQL(base64_encode(serialize($this->shopgate_order)));
+        }
+        
+        if (is_array($this->comments)) {
+            
+            if (method_exists("Tools", "jsonEncode")) {
+                $encodedData = Tools::jsonEncode($this->comments);
+            } else {
+                $encodedData = json_encode($this->comments);
+            }
+            
+            $this->comments = pSQL(base64_encode($encodedData));
+        } else {
+            $this->comments = pSQL($this->comments);
+        }
+        
         $fields                     = array();
         $fields['id_cart']             = (int)($this->id_cart);
         $fields['id_order']         = (int)($this->id_order);
@@ -77,7 +94,7 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
         $fields['shipping_service'] = pSQL($this->shipping_service);
         $fields['shipping_cost']     = (float)($this->shipping_cost);
         $fields['shop_number']         = pSQL($this->shop_number);
-        $fields['comments']         = pSQL($this->comments, true);
+        $fields['comments']         = $this->comments;
         $fields['status']             = (int)($this->status);
         return $fields;
     }
@@ -155,5 +172,284 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
     public function updateFromOrder($order)
     {
         $this->shopgate_order = serialize($order);
+    }
+    
+    /**
+     * @param bool $partial
+     * @param            $message
+     *
+     * @return bool
+     * @throws \ShopgateLibraryException
+     */
+    public function cancelOrder(&$message, $partial = false)
+    {
+        $log                 = ShopgateLogger::getInstance();
+        $cancellationItems     = array();
+        
+        // partial cancellation
+        // need to check if items quantity changed
+        if (!$partial) {
+            $message .= 'order will be cancelled complete: '.$this->order_number."\n";
+        } else {
+            $sgOrder                     = unserialize(base64_decode($this->shopgate_order));
+            $cancellationInformation     = unserialize(base64_decode($this->reported_cancellations));
+            $cancellationInformation     = empty($cancellationInformation) ? array() : $cancellationInformation;
+            
+            if (empty($sgOrder)) {
+                // changed log type to debug to prevent the creation
+                // of huge log files
+                $log->log(
+                    "Shopgate order data are unavailable id_order:{$this->id_order}, ".
+                    "Shopgate order number: {$this->order_number}",
+                    ShopgateLogger::LOGTYPE_DEBUG
+                );
+                return;
+            }
+            
+            $cancellationItems                 = $this->getCancellationData($sgOrder, $cancellationInformation, $message, $log);
+            
+            if (empty($cancellationItems) || $cancellationItems == $cancellationInformation) {
+                return; // nothing should happen because nothing to do or something went wrong
+            }
+            
+            $cancellationInformation         = array_merge($cancellationInformation, $cancellationItems);
+            $this->shopgate_order             = $sgOrder;
+            $this->reported_cancellations     = base64_encode(serialize($cancellationInformation));
+            $message .= 'order will be cancelled partial: '.$this->order_number."\n";
+        }
+        
+        $items = $this->prepareRequestData($cancellationItems);
+        
+        // prevent that a cancellation will be sent only one time.
+        // this check is needed only for full cancellations
+        if ($this->is_cancellation_sent_to_shopgate == 0 && $this->sendCancellationRequest($partial, $items)) {
+            if (!$partial) {
+                $this->is_cancellation_sent_to_shopgate = 1;
+            }
+            
+            $this->update();
+        }
+    }
+    
+    /**
+     * put the cancellation item data into the needed format
+     *
+     * @param $items
+     *
+     * @return array
+     */
+    private function prepareRequestData($items)
+    {
+        $requestItemList = array();
+        
+        if (empty($items)) {
+            return $requestItemList;
+        }
+        
+        foreach ($items as $itemNumber => $item) {
+            if ($item['data']['quantity_to_cancel'] > 0) {
+                $requestItemList[] = array(
+                    'item_number'     => $itemNumber,
+                    'quantity'         => $item['data']['quantity_to_cancel'],
+                );
+            }
+        }
+        
+        return $requestItemList;
+    }
+    
+    /**
+     * calculate the the quantity to cancel at shopgate
+     *
+     * @param \ShopgateOrder     $sgOrder this is the shopgate object which was stored into
+     *                                     the database on addOrder request
+     * @param array             $cancelledItems
+     * @param                  $message
+     * @param \ShopgateLogger  $log
+     *
+     * @return array
+     * @throws \ShopgateLibraryException
+     */
+    private function getCancellationData(ShopgateOrder $sgOrder, $cancelledItems, &$message, ShopgateLogger $log)
+    {
+        if (version_compare(_PS_VERSION_, '1.5.0', '>=')) {
+            $pItems = OrderDetailCore::getList($this->id_order);
+        } else {
+            $pOrder = new OrderCore($this->id_order);
+            $pItems = $pOrder->getProductsDetail();
+        }
+        
+        if (empty($pItems)) {
+            $errorMessage = "No products found to shopgate order id_order:{$sgOrder->getOrderNumber()}";
+            $message .= $errorMessage;
+            // changed log type to debug to prevent the creation
+            // of huge log files
+            $log->log($errorMessage, ShopgateLogger::LOGTYPE_DEBUG);
+            
+            return array();
+        }
+        
+        foreach ($sgOrder->getItems() as $sgItem) {
+            foreach ($pItems as $pItem) {
+                $qty             = null;
+                $fromHook         = false;
+                $sgItemNumber     = $sgItem->getItemNumber();
+                
+                // generate the item number as we do it for items with attributes
+                if (!empty($pItem['product_attribute_id'])) {
+                    $prestaItemNumber = $pItem['product_id'].'-'.$pItem['product_attribute_id'];
+                } else {
+                    $prestaItemNumber = $pItem['product_id'];
+                }
+                
+                if ($sgItemNumber == $prestaItemNumber) {
+                    // There is no opportunity to deliver this information to
+                    // Shopgate. We need to add a message to the order.
+                    $refundPriceData     = Tools::getValue('partialRefundProduct');
+                    $refundQtyData         = Tools::getValue('partialRefundProductQuantity');
+                    
+                    if (!empty($refundPriceData[$pItem['id_order_detail']])) {
+                        $currency         = new CurrencyCore(ConfigurationCore::get("PS_CURRENCY_DEFAULT"));
+                        $noteMsg         = "Please note that these information could not be transmitted to Shopgate.\n";
+                        $refundPrice     = $refundPriceData[$pItem['id_order_detail']];
+                        $refundPriceMsg = "The price of the Product (id:{$pItem['product_id']}) was refunded({$refundPrice}{$currency->sign}).\n";
+                        
+                        if (empty($this->comments)) {
+                            $this->comments = array();
+                        }
+                        
+                        if (is_string($this->comments)) {
+
+                            $data = base64_decode($this->comments);
+                            
+                            if (method_exists("Tools", "jsonDecode")) {
+                                $this->comments = Tools::jsonDecode($data);
+                            } else {
+                                $this->comments = json_decode($data);
+                            }
+                            
+                        }
+                        
+                        if (is_array($this->comments)) {
+                            $this->comments[] = $noteMsg;
+                            $this->comments[] = $refundPriceMsg;
+                        }
+                    }
+                    
+                    // if the hook was executed or cancel_order request was sent from
+                    // shopgate, we get the right data from version 1.5.0
+                    // for lower versions we got two cases:
+                    // * cancel order request, we need to get the cancelled quantity
+                    //   out of the database (here we need to calculate it as in 1.5.00)
+                    // * if the hook was executed from prestashop, we get the actual cancelled
+                    //   amount in the $_POST array (here there is no need to calculate the cancelled)
+                    //   value, cause we got it at this point
+                    if (empty($refundQtyData[$pItem['id_order_detail']]) && Tools::isSubmit('partialRefundProduct')) {
+                        continue;
+                    } else {
+                        $qty = $refundQtyData[$pItem['id_order_detail']];
+                    }
+
+                    // try to retrieve an $_POST['cancelQuantity'] array
+                    $cancelQuantity = Tools::getValue('cancelQuantity', null);
+
+                    if (version_compare(_PS_VERSION_, '1.5.0', '>=') && empty($qty)) {
+                        $qty = $sgItem->getQuantity() - $pItem['product_quantity'];
+                    } elseif (!empty($cancelQuantity[$pItem['id_order_detail']]) && empty($qty)) {
+                        $qty = $cancelQuantity[$pItem['id_order_detail']];
+                        $fromHook = true;
+                    }
+                    
+                    if (empty($qty) && Tools::getValue('action') == "cron") {
+                        $qty = $pItem['product_quantity_refunded'];
+                    }
+                    
+                    // nothing to cancel here
+                    if (empty($qty) || $qty < 1) {
+                        continue;
+                    }
+                    
+                    $cancelledItems[$sgItemNumber]['data']['item_number'] = $pItem['product_id'];
+                    
+                    // if someone changed the quantity for this item in the past
+                    // we stored it in the database
+                    if (empty($cancelledItems[$sgItemNumber]['data']['quantity'])) {
+                        $oldQty = 0;
+                    } else {
+                        $oldQty = $cancelledItems[$sgItemNumber]['data']['quantity'];
+                    }
+                    
+                    if (empty($cancelledItems[$sgItemNumber]['data']['quantity'])) {
+                        $cancelledItems[$sgItemNumber]['data']['quantity']                 = $qty;
+                        $cancelledItems[$sgItemNumber]['data']['quantity_to_cancel']     = $qty;
+                    } else {
+                        
+                        // subtract the old quantity
+                        if (version_compare(_PS_VERSION_, '1.5.0', '>=') || !$fromHook) {
+                            if (Tools::isSubmit('partialRefundProduct')) {
+                                $cancelQuantity = $qty;
+                            } else {
+                                $cancelQuantity = $qty - $oldQty;
+                            }
+                        } else {
+                            $cancelQuantity = $qty;
+                        }
+                        
+                        if ($cancelQuantity < 0) {
+                            $cancelQuantity *= -1;
+                        }
+                        
+                        if ($cancelQuantity > 0) {
+                            $cancelledItems[$sgItemNumber]['data']['quantity']                 += $cancelQuantity;
+                            $cancelledItems[$sgItemNumber]['data']['quantity_to_cancel']     = $cancelQuantity;
+                        } else {
+                            $cancelledItems[$sgItemNumber]['data']['quantity_to_cancel'] = 0;
+                        }
+                    }
+                    if ($cancelQuantity > 0) {
+                        $message .= "reducing quantity ({$cancelledItems[$sgItemNumber]['data']['quantity_to_cancel']}) for the item {$sgItemNumber} \n";
+                    }
+                }
+            }
+        }
+        
+        return $cancelledItems;
+    }
+    
+    /**
+     * @param array $items
+     * @param       $partial
+     *
+     * @return bool
+     */
+    private function sendCancellationRequest($partial, $items = array())
+    {
+        
+        if (!empty($this->merchantApiCache[$this->shop_number])) {
+            $merchantApi = $this->merchantApiCache[$this->shop_number];
+        } else {
+            $builder      = new ShopgateBuilder(new ShopgateConfigPrestashop());
+            $merchantApi = $builder->buildMerchantApi();
+            $this->merchantApiCache[$this->shop_number] = $merchantApi;
+        }
+        
+        try {
+            if (empty($items) && !$partial) {
+                $merchantApi->cancelOrder($this->order_number, true);
+                $requestSent = true;
+            } elseif (!empty($items) && $partial) {
+                $merchantApi->cancelOrder($this->order_number, false, $items);
+                $requestSent = true;
+            } else {
+                $requestSent = false;
+            }
+        } catch (Exception $e) {
+            /*catch the exceptions, do nothing
+            to prevent that the following other cancellation request won't
+            be requested*/
+            $requestSent = false;
+        }
+        
+        return $requestSent;
     }
 }
