@@ -144,7 +144,7 @@ class ShopGate extends PaymentModule
             $this->tab = 'mobile';
         }
 
-        $this->version = '2.9.49';
+        $this->version = '2.9.50';
         $this->author = 'Shopgate';
         $this->module_key = '';
 
@@ -674,12 +674,12 @@ class ShopGate extends PaymentModule
         $adminImageLocalPath = _PS_IMG_DIR_.'admin/'.$imageFileName;
         return file_exists($adminImageLocalPath) ? $adminImageUrl : '';
     }
-    
+
     /**
-     * Prestashop had not prepared a hook point for partial 
+     * Prestashop had not prepared a hook point for partial
      * cancellations yet. In this case we need to use a hook point
      * where we are able to access the needed data.
-     * 
+     *
      * @param $param
      */
     public function hookActionAdminControllerSetMedia($param)
@@ -688,24 +688,24 @@ class ShopGate extends PaymentModule
             $this->callUpdateQuantityHook($param);
         }
     }
-    
+
     /**
      * In Prestashop Versions lower than 1.5 there is only one database table
      * used for ("ps_hook") hook points. E.g. the hook "UpdateQuantity" is now
      * called "ActionUpdateQuantity"
-     * 
+     *
      * @param $param
      */
     public function hookActionUpdateQuantity($param)
     {
         $this->callUpdateQuantityHook($param);
     }
-    
+
     /**
      * This is a wrapper function which will be called
      * from the hooks "hookActionUpdateQuantity" or
      * "hookActionAdminControllerSetMedia"
-     * 
+     *
      * @param $param
      */
     private function callUpdateQuantityHook($param)
@@ -715,7 +715,7 @@ class ShopGate extends PaymentModule
             $this->hookUpdateQuantity($param);
         }
     }
-    
+
     /**
      * This method is called when the order was edited
      *
@@ -744,7 +744,7 @@ class ShopGate extends PaymentModule
         ) {
             $sgOrder = ShopgateOrderPrestashop::loadByOrderId($idOrder);
             $message = '';
-            
+
             // check if this order is a shopgate order
             if (!is_null($sgOrder->order_number) && !is_null($sgOrder->id_order)) {
                 $sgOrder->cancelOrder($message, true);
@@ -791,12 +791,12 @@ class ShopGate extends PaymentModule
             if (!empty($shippedOrderStates[$newOrderState->id])) {
                 $shopgateMerchantApi->setOrderShippingCompleted($shopgateOrder->order_number);
             }
-    
+
             $message = '';
             if ($cancellationStatus == $newOrderState->id) {
                 $shopgateOrder->cancelOrder($message);
             }
-            
+
         } catch (ShopgateMerchantApiException $e) {
             $msg              = new Message();
             $msg->message     = $this->l('On order state').': '.$orderState->name.' - '.$this->l('Shopgate status was not updated because of following error').': '.$e->getMessage();
@@ -825,15 +825,15 @@ class ShopGate extends PaymentModule
         if (!$this->insertColumnToTable(_DB_PREFIX_.'shopgate_order', 'shopgate_order', 'text NULL DEFAULT NULL', 'status')) {
             return false;
         }
-    
+
         if (!$this->insertColumnToTable(_DB_PREFIX_.'shopgate_order', 'is_cancellation_sent_to_shopgate', "int(1) NOT NULL DEFAULT '0'", 'shopgate_order')) {
             return false;
         }
-        
+
         if (!$this->insertColumnToTable(_DB_PREFIX_.'shopgate_order', 'reported_cancellations', 'text NULL DEFAULT NULL', 'is_cancellation_sent_to_shopgate')) {
             return false;
         }
-        
+
         return true;
 
     }
