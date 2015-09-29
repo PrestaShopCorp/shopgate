@@ -1,6 +1,9 @@
 
 '''English'''
 
+'''Version 2.9.50'''
+* added custom fields mapping to database fields in case its possible
+
 '''Version 2.9.49'''
 * optimized get items query
 * added selected shipping method to check_cart

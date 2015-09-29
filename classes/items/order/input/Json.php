@@ -114,6 +114,10 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
 
         $this->getCart()->secure_key = $customer->secure_key;
         $this->getCart()->id_carrier = $shippingModel->getCarrierIdByApiOrder($order);
+
+        $shopgateCustomFieldsHelper = new ShopgateCustomFieldsHelper();
+        $shopgateCustomFieldsHelper->saveCustomFields($this->getCart(), $order->getCustomFields());
+
         $this->getCart()->add();
 
         /**

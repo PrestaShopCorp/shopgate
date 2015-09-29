@@ -29,7 +29,7 @@ if (!defined('_PS_VERSION_')) {
 /**
  * define shopgate version
  */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.49');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.50');
 
 /**
  * define module dir
@@ -59,6 +59,7 @@ require_once(SHOPGATE_DIR.'classes/Shipping.php');
 require_once(SHOPGATE_DIR.'classes/Payment.php');
 require_once(SHOPGATE_DIR.'classes/Order.php');
 require_once(SHOPGATE_DIR.'classes/Customer.php');
+require_once(SHOPGATE_DIR.'classes/CustomFields.php');
 
 /**
  * abstract
@@ -144,7 +145,7 @@ class ShopGate extends PaymentModule
             $this->tab = 'mobile';
         }
 
-        $this->version = '2.9.49';
+        $this->version = '2.9.50';
         $this->author = 'Shopgate';
         $this->module_key = '';
 
