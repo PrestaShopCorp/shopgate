@@ -125,12 +125,15 @@ class ShopGate extends PaymentModule
     /** @var  array */
     protected $configurations;
 
+    private $cancellationRequestAlreadySent;
+
     /**
      * init settings
      */
     public function __construct()
     {
         $this->bootstrap = true;
+        $this->cancellationRequestAlreadySent = false;
 
         /**
          * fill models
@@ -582,7 +585,7 @@ class ShopGate extends PaymentModule
                 $oldShopVersion = false;
             }
 
-            if (!$apiOrder) {
+            if (!is_object($apiOrder)) {
                 try {
                     $shopgateConfig = new ShopgateConfigPrestashop();
 
@@ -630,7 +633,7 @@ class ShopGate extends PaymentModule
             /**
              * prepare show custom fields panel
              */
-            if ($apiOrder && (count($apiOrder->getCustomFields())
+            if (is_object($apiOrder) && (count($apiOrder->getCustomFields())
                 || count($apiOrder->getInvoiceAddress()->getCustomFields())
                 || count($apiOrder->getDeliveryAddress()->getCustomFields()))) {
                 $this->context->smarty->assign('showCustomFieldsPanel', true);
