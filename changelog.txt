@@ -1,9 +1,12 @@
 
 '''English'''
 
-'''Version 2.9.50'''
+'''Version 2.9.51'''
 * added custom fields mapping to database fields in case its possible
 * fixed display problem of Shopgate orders in the Prestashop backend
+
+'''Version 2.9.50'''
+* new translation files for ES, IT, NL, PL, PT
 
 '''Version 2.9.49'''
 * optimized get items query
