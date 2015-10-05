@@ -29,7 +29,7 @@ if (!defined('_PS_VERSION_')) {
 /**
  * define shopgate version
  */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.49');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.51');
 
 /**
  * define module dir
@@ -59,6 +59,7 @@ require_once(SHOPGATE_DIR.'classes/Shipping.php');
 require_once(SHOPGATE_DIR.'classes/Payment.php');
 require_once(SHOPGATE_DIR.'classes/Order.php');
 require_once(SHOPGATE_DIR.'classes/Customer.php');
+require_once(SHOPGATE_DIR.'classes/CustomFields.php');
 
 /**
  * abstract
@@ -124,12 +125,15 @@ class ShopGate extends PaymentModule
     /** @var  array */
     protected $configurations;
 
+    private $cancellationRequestAlreadySent;
+
     /**
      * init settings
      */
     public function __construct()
     {
         $this->bootstrap = true;
+        $this->cancellationRequestAlreadySent = false;
 
         /**
          * fill models
@@ -144,7 +148,7 @@ class ShopGate extends PaymentModule
             $this->tab = 'mobile';
         }
 
-        $this->version = '2.9.50';
+        $this->version = '2.9.51';
         $this->author = 'Shopgate';
         $this->module_key = '';
 
@@ -581,7 +585,7 @@ class ShopGate extends PaymentModule
                 $oldShopVersion = false;
             }
 
-            if (!$apiOrder) {
+            if (!is_object($apiOrder)) {
                 try {
                     $shopgateConfig = new ShopgateConfigPrestashop();
 
@@ -629,7 +633,7 @@ class ShopGate extends PaymentModule
             /**
              * prepare show custom fields panel
              */
-            if ($apiOrder && (count($apiOrder->getCustomFields())
+            if (is_object($apiOrder) && (count($apiOrder->getCustomFields())
                 || count($apiOrder->getInvoiceAddress()->getCustomFields())
                 || count($apiOrder->getDeliveryAddress()->getCustomFields()))) {
                 $this->context->smarty->assign('showCustomFieldsPanel', true);
