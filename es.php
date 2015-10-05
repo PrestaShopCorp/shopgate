@@ -95,4 +95,3 @@ $_MODULE['<{shopgate}prestashop>configurations_09f89dd1682ec99283aa298c68e4355c'
 $_MODULE['<{shopgate}prestashop>configurations_58b2e2eff900334f1aea87c9bf05903c'] = 'tipo de precio';
 $_MODULE['<{shopgate}prestashop>configurations_e1196407c93f3e933cde8c6a55015ff8'] = 'Mobile carrier';
 $_MODULE['<{shopgate}prestashop>configurations_c9cc8cce247e49bae79f15173ce97354'] = 'Guardar';
-

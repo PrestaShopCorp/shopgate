@@ -51,6 +51,9 @@ class ShopgateItemsCustomerImportJson extends ShopgateItemsCustomer
         $customerModel->birthday     = $customer->getBirthday();
         $customerModel->newsletter     = $customer->getNewsletterSubscription();
 
+        $shopgateCustomFieldsHelper = new ShopgateCustomFieldsHelper();
+        $shopgateCustomFieldsHelper->saveCustomFields($customerModel, $customer->getCustomFields());
+
         $validateMessage = $customerModel->validateFields(false, true);
 
         if ($validateMessage !== true) {
@@ -75,7 +78,7 @@ class ShopgateItemsCustomerImportJson extends ShopgateItemsCustomer
      * @return int
      * @throws ShopgateLibraryException
      */
-    public function createAddress($address, $customer)
+    public function createAddress(ShopgateAddress $address, $customer)
     {
         /** @var AddressCore | Address $addressModel */
         $addressItem = new Address();
@@ -125,6 +128,9 @@ class ShopgateItemsCustomerImportJson extends ShopgateItemsCustomer
 
         $addressItem->phone         = $address->getPhone();
         $addressItem->phone_mobile  = $address->getMobile();
+
+        $shopgateCustomFieldsHelper = new ShopgateCustomFieldsHelper();
+        $shopgateCustomFieldsHelper->saveCustomFields($addressItem, $address->getCustomFields());
 
         $validateMessage            = $addressItem->validateFields(false, true);
 
