@@ -109,13 +109,14 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
      */
     protected function getProductIds($limit = null, $offset = null, array $uids = array())
     {
+
         $select = sprintf('SELECT
                         id_product
                         FROM %sproduct
                         %s
                         ORDER BY id_product ASC
                         %s
-                        ', _DB_PREFIX_, count($uids) > 0 ? 'WHERE id_product IN ('.implode(',', $uids).')' : '', is_int($limit) ? 'LIMIT '.$limit.(is_int($offset) ? ' OFFSET '.$offset : '') : '');
+                        ', _DB_PREFIX_, 'WHERE active != 0 '. (count($uids) > 0 ? ' AND id_product IN ('.implode(',', $uids).') ' : ''), is_int($limit) ? 'LIMIT '.$limit.(is_int($offset) ? ' OFFSET '.$offset : '') : '');
 
         return Db::getInstance()->ExecuteS($select);
     }
@@ -145,30 +146,14 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
      */
     public function prepareTaxClass()
     {
-        //since 1.5.0.1 the tax system changed
-        if (version_compare(_PS_VERSION_, '1.5.0.0', '<')) {
-            $taxes        = Tax::getTaxes($this->getPlugin()->getLanguageId());
-            $taxToProduct = Tax::getDataByProductId($this->currentProduct->id);
 
-            if (empty($taxToProduct['id_tax'])) {
-                return '';
-            }
+        $taxRulesGroups  = TaxRulesGroupCore::getTaxRulesGroups(true);
+        $idTaxRulesGroup = (int)Product::getIdTaxRulesGroupByIdProduct($this->currentProduct->id, null);
 
-            $taxToProductUid = $taxToProduct['id_tax'];
-
-            foreach ($taxes as $tax) {
-                if (!empty($tax['id_tax']) && $taxToProductUid == $tax['id_tax']) {
-                    return $tax['name'];
-                }
-            }
-        } else {
-            $taxRulesGroups  = TaxRulesGroupCore::getTaxRulesGroups(true);
-            $idTaxRulesGroup = (int)Product::getIdTaxRulesGroupByIdProduct($this->currentProduct->id, null);
-
-            foreach ($taxRulesGroups as $taxRulesGroup) {
-                if ($taxRulesGroup['id_tax_rules_group'] == $idTaxRulesGroup) {
-                    return $taxRulesGroup['name'];
-                }
+        foreach ($taxRulesGroups as $taxRulesGroup) {
+            if ($taxRulesGroup['id_tax_rules_group'] == $idTaxRulesGroup) {
+                $tax = ShopgateSettings::getTaxItemByTaxRuleGroupId($idTaxRulesGroup);
+                return is_array($tax->name) ? reset($tax->name) : '';
             }
         }
 

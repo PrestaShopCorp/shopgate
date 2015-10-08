@@ -1,6 +1,12 @@
 
 '''English'''
 
+'''Version 2.9.52'''
+* fix state for customer addresses during order import
+* fix shopgate carrier
+* fixed product tax class export
+* inactive products are no longer exported
+
 '''Version 2.9.51'''
 * added custom fields mapping to database fields in case its possible
 * fixed display problem of Shopgate orders in the Prestashop backend

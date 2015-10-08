@@ -168,21 +168,70 @@ class ShopgateShipping
     public function createShopgateCarrier()
     {
         /** @var CarrierCore $carrier */
-        $carrier = new Carrier();
-        $carrier->name = self::MODULE_CARRIER_NAME;
-        $carrier->is_module = 1;
-        $carrier->deleted = 0;
-        $carrier->shipping_external = 1;
-        $carrier->id_tax_rules_group = 0;
-
-        $carrier->external_module_name = self::DEFAULT_EXTERNAL_MODULE_CARRIER_NAME;
+        $carrier                                               = new Carrier();
+        $carrier->name                                         = self::MODULE_CARRIER_NAME;
+        $carrier->active                                       = true;
+        $carrier->deleted                                      = true;
+        $carrier->shipping_handling                            = false;
+        $carrier->range_behavior                               = true;
+        $carrier->delay[Configuration::get('PS_LANG_DEFAULT')] = self::MODULE_CARRIER_NAME;
+        $carrier->shipping_external                            = true;
+        $carrier->is_module                                    = true;
+        $carrier->external_module_name                         = self::DEFAULT_EXTERNAL_MODULE_CARRIER_NAME;
+        $carrier->need_range                                   = true;
 
         foreach (Language::getLanguages() as $language) {
             $carrier->delay[$language['id_lang']] = 'Depends on Shopgate selected carrier';
         }
 
-        $carrier->save();
+        if ($carrier->add()) {
+            $groups = Group::getGroups(true);
+            foreach ($groups as $group) {
+                Db::getInstance()->autoExecute(_DB_PREFIX_.'carrier_group', array(
+                    'id_carrier' => (int)$carrier->id,
+                    'id_group'   => (int)$group['id_group']
+                ), 'INSERT');
+            }
+
+            /** @var RangePriceCore $rangePrice */
+            $rangePrice             = new RangePrice();
+            $rangePrice->id_carrier = $carrier->id;
+            $rangePrice->delimiter1 = '0';
+            $rangePrice->delimiter2 = '1000000';
+            $rangePrice->add();
+
+            /** @var RangeWeightCore $rangeWeight */
+            $rangeWeight             = new RangeWeight();
+            $rangeWeight->id_carrier = $carrier->id;
+            $rangeWeight->delimiter1 = '0';
+            $rangeWeight->delimiter2 = '1000000';
+            $rangeWeight->add();
+
+            $zones = Zone::getZones(true);
+            foreach ($zones as $zone) {
+                /** @var $zone ZoneCore */
+                Db::getInstance()->autoExecute(_DB_PREFIX_.'carrier_zone', array('id_carrier' => (int)$carrier->id, 'id_zone' => (int)$zone['id_zone']), 'INSERT');
+                Db::getInstance()->autoExecuteWithNullValues(
+                    _DB_PREFIX_ . 'delivery',
+                    array(
+                        'id_carrier'      => $carrier->id, 'id_range_price' => (int)$rangePrice->id,
+                        'id_range_weight' => null, 'id_zone' => (int)$zone['id_zone'], 'price' => '0'
+                    ),
+                    'INSERT'
+                );
+                Db::getInstance()->autoExecuteWithNullValues(
+                    _DB_PREFIX_ . 'delivery',
+                    array(
+                        'id_carrier'      => $carrier->id, 'id_range_price' => null,
+                        'id_range_weight' => (int)$rangeWeight->id, 'id_zone' => (int)$zone['id_zone'], 'price' => '0'
+                    ),
+                    'INSERT'
+                );
+            }
+        }
+
         Configuration::updateValue('SG_CARRIER_ID', $carrier->id);
+
     }
 
     /**
