@@ -111,6 +111,15 @@ class ShopgateItemsCustomerImportJson extends ShopgateItemsCustomer
 
         $addressItem->id_country = Country::getByIso($address->getCountry());
 
+        /**
+         * prepare states
+         */
+        $stateParts = explode('-', $address->getState());
+
+        if (count($stateParts) == 2) {
+            $address->setState($stateParts[1]);
+        };
+
         if ($address->getState() && !Validate::isStateIsoCode($address->getState())) {
             $customer->delete();
             throw new ShopgateLibraryException(

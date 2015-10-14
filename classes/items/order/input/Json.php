@@ -37,7 +37,6 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
 
         /** @var CarrierCore $sgCarrier */
         $sgCarrier = new Carrier(Configuration::get('SG_CARRIER_ID'));
-        $sgCarrier->active = 1;
         if (version_compare(_PS_VERSION_, '1.5.0', '<') && empty($sgCarrier->name)) {
             $sgCarrier->name = 'shopgate_tmp_carrier';
         }
@@ -176,12 +175,6 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
         }
 
         /**
-         * deactivate shopgate carrier
-         */
-        $sgCarrier->active = 0;
-        $sgCarrier->update();
-
-        /**
          * store shopgate order
          */
         $shopgateOrderItem = new ShopgateOrderPrestashop();
@@ -202,6 +195,8 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
             /**
              * get first item from order stats
              */
+            $this->getCart()->save();
+
             $idOrderState = reset($paymentModel->getOrderStateId($order));
             $validateOder = $this->getModule()->validateOrder(
                 $this->getCart()->id,
