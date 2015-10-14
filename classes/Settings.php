@@ -25,6 +25,8 @@ class ShopgateSettings
 
     const DEFAULT_ORDER_NEW_STATE_KEY_PATTERN = 'SG_ONS_%s';
 
+    private static $cacheTaxRuleByGroupId;
+
     /**
      * settings keys
      *
@@ -413,6 +415,11 @@ class ShopgateSettings
      */
     public static function getTaxItemByTaxRuleGroupId($ruleGroupId)
     {
+
+        if (!empty(self::$cacheTaxRuleByGroupId[$ruleGroupId])) {
+            return self::$cacheTaxRuleByGroupId[$ruleGroupId];
+        }
+
         $select = sprintf(
             'SELECT DISTINCT id_tax from %stax_rule WHERE id_tax_rules_group = %d',
             _DB_PREFIX_,
@@ -422,10 +429,10 @@ class ShopgateSettings
         $result = Db::getInstance()->getRow($select);
 
         if (is_array($result) && isset($result['id_tax'])) {
-            return new Tax($result['id_tax']);
+            return self::$cacheTaxRuleByGroupId[$ruleGroupId] = new Tax($result['id_tax']);
         }
 
-        return false;
+        return self::$cacheTaxRuleByGroupId[$ruleGroupId] = false;
     }
 
     /**
