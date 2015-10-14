@@ -153,7 +153,16 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
         foreach ($taxRulesGroups as $taxRulesGroup) {
             if ($taxRulesGroup['id_tax_rules_group'] == $idTaxRulesGroup) {
                 $tax = ShopgateSettings::getTaxItemByTaxRuleGroupId($idTaxRulesGroup);
-                return is_array($tax->name) ? reset($tax->name) : '';
+
+                $taxClassName = '';
+                if (is_array($tax->name) && !empty($tax->name[$this->getPlugin()->getLanguageId()])) {
+                    $taxClassName = $tax->name[$this->getPlugin()->getLanguageId()];
+                } else if (is_array($tax->name)) {
+                    // fallback: just in case for older Prestashop versions
+                    $taxClassName = reset($tax->name);
+                }
+
+                return $taxClassName;
             }
         }
 
