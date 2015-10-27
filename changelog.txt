@@ -1,6 +1,16 @@
 
 '''English'''
 
+'''Version 2.9.53'''
+* added redirect to mobil brand product listing
+* shipments can now also be transferred to shopgate via cron (set_shipping_completed)
+* added sku to product export
+* fixed currency issue
+* fixed empty identifiers in product export
+* fixed issues in reviews export
+* fixed a small product export issue in case product database entries are corrupt
+* fixed duplicate discount for specific coupons
+
 '''Version 2.9.52'''
 * fix state for customer addresses during order import
 * fix shopgate carrier

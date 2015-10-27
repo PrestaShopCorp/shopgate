@@ -229,34 +229,60 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
     {
         $results = array();
 
+        $carrierId = null;
+        if ($cart->getShippingInfos()) {
+            $apiResponse = $cart->getShippingInfos()->getApiResponse();
+            if (!empty($apiResponse)) {
+                $apiResponse = unserialize($apiResponse);
+                if (!empty($apiResponse['carrierId'])) {
+                    $carrierId = $apiResponse['carrierId'];
+                }
+            }
+        }
+
+        $package = null;
+        if (!empty($carrierId)) {
+            $package = array('products' => null, 'id_carrier' => $carrierId);
+        }
+
         foreach ($cart->getExternalCoupons() as $coupon) {
             $result = new ShopgateExternalCoupon();
             $result->setCode($coupon->getCode());
             $result->setCurrency($this->_getCurrency());
-            /** @var CartRuleCore $cartRule */
-            $cartRule = new CartRule(CartRule::getIdByCode($coupon->getCode()));
-            if (Validate::isLoadedObject($cartRule)) {
-                $result->setName($cartRule->getFieldByLang('name'), $this->getPlugin()->getContext()->language->id);
-                $result->setDescription($cartRule->getFieldByLang('description', $this->getPlugin()->getContext()->language->id));
-                $result->setTaxType(Translate::getAdminTranslation('not_taxable'));
-                $result->setAmountGross($cartRule->getContextualValue(true, $this->getPlugin()->getContext()));
+            $result->setIsValid(false);
+            $result->setNotValidMessage(Tools::displayError('This voucher does not exists.'));
 
-                $result->setIsFreeShipping((bool)$cartRule->free_shipping);
+            if (version_compare(_PS_VERSION_, '1.5.0.0', '>=')) {
+                /** @var CartRuleCore $cartRule */
+                $cartRule = new CartRule(CartRule::getIdByCode($coupon->getCode()));
+                if (Validate::isLoadedObject($cartRule)) {
+                    $result->setName($cartRule->getFieldByLang('name'), $this->getPlugin()->getContext()->language->id);
+                    $result->setDescription(
+                        $cartRule->getFieldByLang('description', $this->getPlugin()->getContext()->language->id)
+                    );
+                    $result->setTaxType(Translate::getAdminTranslation('not_taxable'));
+                    $result->setAmountGross(
+                        $cartRule->getContextualValue(
+                            true,
+                            $this->getPlugin()->getContext(),
+                            null,
+                            $package
+                        )
+                    );
 
-                /**
-                 * validate coupon
-                 */
-                if ($validateException = $cartRule->checkValidity($this->getPlugin()->getContext(), false, true)) {
-                    $result->setIsValid(false);
-                    $result->setNotValidMessage($validateException);
-                } else {
-                    $result->setIsValid(true);
-                    $this->getPlugin()->getContext()->cart->addCartRule($cartRule->id);
-                    $this->getPlugin()->getContext()->cart->save();
+                    /**
+                     * validate coupon
+                     */
+                    if ($validateException = $cartRule->checkValidity($this->getPlugin()->getContext(), false, true)) {
+                        $result->setIsValid(false);
+                        $result->setNotValidMessage($validateException);
+                    } else {
+                        $result->setIsValid(true);
+                        $result->setNotValidMessage(null);
+                        $this->getPlugin()->getContext()->cart->addCartRule($cartRule->id);
+                        $this->getPlugin()->getContext()->cart->save();
+                    }
                 }
-            } else {
-                $result->setIsValid(false);
-                $result->setNotValidMessage(Tools::displayError('This voucher does not exists.'));
             }
 
             $results[] = $result;

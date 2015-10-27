@@ -48,5 +48,7 @@ function upgrade_module_2_9_52($module)
     $shopgateShippingModel = new ShopgateShipping($module);
     $shopgateShippingModel->createShopgateCarrier();
 
+    $module->updateTables();
+
     return true;
 }

@@ -30,7 +30,7 @@ class ShopgateItemsReview extends ShopgateItemsAbstract
 
         if (ShopgateHelper::checkTable(sprintf('%sproduct_comment', _DB_PREFIX_))) {
             $reviews = Db::getInstance()->ExecuteS(sprintf('SELECT * FROM %sproduct_comment
-                                                            WHERE validate = 1%s%s', _DB_PREFIX_, is_int($limit) ? ' LIMIT '.$limit : '', is_int($offset) ? ' OFFSET '.$offset : ''));
+                                                            WHERE validate = 1 AND deleted = 0%s%s', _DB_PREFIX_, is_int($limit) ? ' LIMIT '.$limit : '', is_int($offset) ? ' OFFSET '.$offset : ''));
         }
 
         return $reviews;

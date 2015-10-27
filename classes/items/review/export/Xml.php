@@ -40,7 +40,7 @@ class ShopgateItemsReviewExportXml extends Shopgate_Model_Review
      */
     public function setScore()
     {
-        parent::setScore($this->item['grade']);
+        parent::setScore((int)$this->item['grade'] * 2);
     }
 
     /**
@@ -56,7 +56,7 @@ class ShopgateItemsReviewExportXml extends Shopgate_Model_Review
      */
     public function setDate()
     {
-        parent::setDate($this->item['date_add']);
+        parent::setDate(date('Y-m-d', strtotime($this->item['date_add'])));
     }
 
     /**

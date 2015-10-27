@@ -50,4 +50,18 @@ class ShopgateItemsAbstract
     {
         return $this->module;
     }
+
+    /**
+     * @param float $price
+     *
+     * @return float
+     */
+    public function convertPrice($price)
+    {
+        if (Configuration::get('PS_CURRENCY_DEFAULT') != $this->plugin->getContext()->currency->id) {
+            // Conversion rate of the default must not be 1.00 so we shouldn't convert the standard currency
+            return (float) $this->plugin->getContext()->currency->conversion_rate * $price;
+        }
+        return (float) $price;
+    }
 }

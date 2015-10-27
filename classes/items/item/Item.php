@@ -49,6 +49,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
              * prepare data
              */
             $this->currentProduct = new Product($product['id_product'], true, $this->getPlugin()->getLanguageId());
+
             $resultProduct = get_object_vars($this->currentProduct);
             $this->currentAdditionalInfo = array();
 
@@ -110,13 +111,21 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
     protected function getProductIds($limit = null, $offset = null, array $uids = array())
     {
 
-        $select = sprintf('SELECT
-                        id_product
-                        FROM %sproduct
-                        %s
-                        ORDER BY id_product ASC
-                        %s
-                        ', _DB_PREFIX_, 'WHERE active != 0 '. (count($uids) > 0 ? ' AND id_product IN ('.implode(',', $uids).') ' : ''), is_int($limit) ? 'LIMIT '.$limit.(is_int($offset) ? ' OFFSET '.$offset : '') : '');
+        $select = sprintf(
+            'SELECT
+            DISTINCT products.id_product
+            FROM %sproduct as products
+            INNER JOIN %sproduct_lang AS products_lang ON products.id_product = products_lang.id_product
+            %s
+            ORDER BY id_product ASC
+            %s
+            ',
+            _DB_PREFIX_,
+            _DB_PREFIX_,
+            'WHERE active != 0 '.
+            (count($uids) > 0 ? ' AND id_product IN ('.implode(',', $uids).') ' : ''),
+            is_int($limit) ? 'LIMIT '.$limit.(is_int($offset) ? ' OFFSET '.$offset : '') : ''
+        );
 
         return Db::getInstance()->ExecuteS($select);
     }
@@ -224,7 +233,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                     /**
                      * setCost
                      */
-                    $priceItem->setCost($childProduct->wholesale_price);
+                    $priceItem->setCost($this->convertPrice($childProduct->wholesale_price));
                 }
 
                 if ($childProduct->minimal_quantity > 1) {
@@ -470,14 +479,21 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
         $result = array();
         $product = $product ? $product : $this->currentProduct;
 
-        if (property_exists($product, 'upc')) {
+        if (property_exists($product, 'reference') && !empty($product->reference)) {
+            $identifierItem = new Shopgate_Model_Catalog_Identifier();
+            $identifierItem->setType('SKU');
+            $identifierItem->setValue($product->reference);
+            $result[] = $identifierItem;
+        }
+
+        if (property_exists($product, 'upc') && !empty($product->upc)) {
             $identifierItem = new Shopgate_Model_Catalog_Identifier();
             $identifierItem->setType('UPC');
             $identifierItem->setValue($product->upc);
             $result[] = $identifierItem;
         }
 
-        if (property_exists($product, 'ean13')) {
+        if (property_exists($product, 'ean13') && !empty($product->ean13)) {
             $identifierItem = new Shopgate_Model_Catalog_Identifier();
             $identifierItem->setType('EAN');
             $identifierItem->setValue($product->ean13);
@@ -660,7 +676,7 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
         $priceItem->setPrice($this->getItemPrice($this->currentProduct->id, null, $this->getUseTax()));
 
         if ($this->currentProduct->wholesale_price != 0) {
-            $priceItem->setCost($this->currentProduct->wholesale_price);
+            $priceItem->setCost($this->convertPrice($this->currentProduct->wholesale_price));
         }
 
         $priceItem->setMinimumOrderAmount(
