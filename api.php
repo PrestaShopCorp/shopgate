@@ -20,7 +20,7 @@
 /**
  * default relative path to config
  */
-const DEFAULT_RELATIVE_CONFIG_PATH = '/../../config/config.inc.php';
+define('DEFAULT_RELATIVE_CONFIG_PATH', '/../../config/config.inc.php');
 
 require_once(dirname($_SERVER['SCRIPT_FILENAME']).'/classes/Helper.php');
 require_once(ShopgateHelper::normalizePath(array(dirname($_SERVER['SCRIPT_FILENAME']), DEFAULT_RELATIVE_CONFIG_PATH)));
