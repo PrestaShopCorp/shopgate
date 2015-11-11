@@ -1,5 +1,9 @@
-
 '''English'''
+
+'''Version 2.9.54'''
+* fixed compatibility issue for creating a constant
+* improved compatibility for multi shop support in product export
+* fixed issue with wrong cover image for products
 
 '''Version 2.9.53'''
 * added redirect to mobil brand product listing

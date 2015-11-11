@@ -29,7 +29,7 @@ if (!defined('_PS_VERSION_')) {
 /**
  * define shopgate version
  */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.52');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.54');
 
 /**
  * define module dir
@@ -148,7 +148,7 @@ class ShopGate extends PaymentModule
             $this->tab = 'mobile';
         }
 
-        $this->version = '2.9.52';
+        $this->version = '2.9.54';
         $this->author = 'Shopgate';
         $this->module_key = '';
 

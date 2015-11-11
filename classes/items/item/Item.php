@@ -48,7 +48,11 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
             /*
              * prepare data
              */
-            $this->currentProduct = new Product($product['id_product'], true, $this->getPlugin()->getLanguageId());
+            if (version_compare(_PS_VERSION_, '1.5.0.0', '<')) {
+                $this->currentProduct = new Product($product['id_product'], true, $this->getPlugin()->getLanguageId());
+            } else {
+                $this->currentProduct = new Product($product['id_product'], true, $this->getPlugin()->getLanguageId(), $this->getPlugin()->getContext()->shop->id);
+            }
 
             $resultProduct = get_object_vars($this->currentProduct);
             $this->currentAdditionalInfo = array();
@@ -110,23 +114,32 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
      */
     protected function getProductIds($limit = null, $offset = null, array $uids = array())
     {
-
+        $shopId = $this->getPlugin()->getContext()->shop->id;
+        $conditions = array();
+        
+        $multishopJoin = '';
+        $conditions[] = 'products.active != 0 ';
+        if (version_compare(_PS_VERSION_, '1.5.0.0', '>=') && !empty($shopId)) {
+            $multishopJoin = 'INNER JOIN '._DB_PREFIX_.'product_shop AS products_shop ON products_shop.id_product = products.id_product';
+            $conditions[] = 'products_shop.id_shop = '. $shopId;
+            $conditions[] = 'products_shop.active = 1';
+        }
+        if (count($uids) > 0) {
+            $conditions[] = 'products.id_product IN ('.implode(',', $uids).') ';
+        }
+        
         $select = sprintf(
-            'SELECT
-            DISTINCT products.id_product
-            FROM %sproduct as products
-            INNER JOIN %sproduct_lang AS products_lang ON products.id_product = products_lang.id_product
-            %s
-            ORDER BY id_product ASC
-            %s
-            ',
+            'SELECT DISTINCT products.id_product
+             FROM %sproduct as products
+             %s
+             %s
+             ORDER BY products.id_product ASC
+             %s',
             _DB_PREFIX_,
-            _DB_PREFIX_,
-            'WHERE active != 0 '.
-            (count($uids) > 0 ? ' AND id_product IN ('.implode(',', $uids).') ' : ''),
+            $multishopJoin,
+            $conditions ? 'WHERE '.implode(' AND ', $conditions) : '',
             is_int($limit) ? 'LIMIT '.$limit.(is_int($offset) ? ' OFFSET '.$offset : '') : ''
         );
-
         return Db::getInstance()->ExecuteS($select);
     }
 
@@ -732,8 +745,11 @@ class ShopgateItemsItem extends ShopgateItemsAbstract
                 )
             );
 
-            $imageItem->setSortOrder($image['position']);
-            $imageItem->setIsCover($image['cover']);
+            $sortOrder = $image['cover']
+                ? -1
+                : $image['position'];
+
+            $imageItem->setSortOrder($sortOrder);
 
             if ($imageInfo = $this->getImageInfo($image['id_image'])) {
                 $imageItem->setAlt($imageInfo['legend']);
