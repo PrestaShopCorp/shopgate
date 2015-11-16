@@ -217,9 +217,18 @@ class ShopgateHelper
                 return $shopgateRedirect->buildScriptCategory(Tools::getValue('id_category', 0));
             case 'product':
                 return $shopgateRedirect->buildScriptItem(Tools::getValue('id_product', 0));
+            case 'search':
+                return $shopgateRedirect->buildScriptSearch(Tools::getValue('search_query', ''));
             case 'index':
                 return $shopgateRedirect->buildScriptShop();
             default:
+                if ($manufacturerId = Tools::getValue('id_manufacturer')) {
+                    /** @var ManufacturerCore $manufacturer */
+                    $manufacturer = new Manufacturer($manufacturerId);
+
+                    return $shopgateRedirect->buildScriptBrand($manufacturer->name);
+                }
+
                 return $shopgateRedirect->buildScriptDefault();
         }
     }

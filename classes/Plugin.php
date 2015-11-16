@@ -43,12 +43,17 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
     {
         include_once dirname(__FILE__).'/../backward_compatibility/backward.php';
         $this->config = new ShopgateConfigPrestashop();
+        // Without this explicit setting of the currency, the system could choose the wrong one e.g. EUR instead of PLN
+        $this->getContext()->currency = new Currency(Currency::getIdByIsoCode($this->config->getCurrency()));
     }
     
     public function cron($jobname, $params, &$message, &$errorcount)
     {
         switch ($jobname)
         {
+            case 'set_shipping_completed':
+                $this->setOrderShippingCompleted($message, $errorcount);
+                break;
             case 'cancel_orders':
                 $this->log("cron executed job '".$jobname."'", ShopgateLogger::LOGTYPE_DEBUG);
                 $cancellationStatus = ConfigurationCore::get('SG_CANCELLATION_STATUS');
@@ -102,7 +107,26 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
                     $jobname.'"',
                     true
                 );
-                break;
+        }
+    }
+
+    /**
+     * Triggered by cron job set_shipping_completed to sync shipments for orders
+     * that were most likely update by ERP systems.
+     *
+     * @param string         $message
+     * @param int            $errorcount
+     */
+    public function setOrderShippingCompleted(&$message, &$errorcount)
+    {
+        $unsyncedOrders = ShopgateOrderPrestashop::getUnsyncedShopgatOrderIds($this->getLanguageId());
+        foreach ($unsyncedOrders as $unsyncedOrder) {
+            $this->log(
+                "Try to set shipping completed for order with shopgate-order-number #{$unsyncedOrder['order_number']}",
+                ShopgateLogger::LOGTYPE_DEBUG
+            );
+            $sgOrder = ShopgateOrderPrestashop::loadByOrderId($unsyncedOrder['id_order']);
+            $sgOrder->setShippingComplete($message, $errorcount);
         }
     }
 

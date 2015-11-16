@@ -838,6 +838,10 @@ class ShopGate extends PaymentModule
             return false;
         }
 
+        if (!$this->insertColumnToTable(_DB_PREFIX_.'shopgate_order', 'is_sent_to_shopgate', 'int(1) NOT NULL DEFAULT 0', 'reported_cancellations')) {
+            return false;
+        }
+
         return true;
 
     }

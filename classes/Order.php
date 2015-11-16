@@ -37,6 +37,7 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
     public $comments;
     public $status;
     public $shopgate_order;
+    public $is_sent_to_shopgate;
 
     public static $definition = array(
         'table'     => 'shopgate_order',
@@ -52,14 +53,15 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
                 'validate' => 'isUnsignedInt',
                 'required' => true
             ),
-            'shopgate_order'     => array('type' => self::TYPE_STRING),
-            'id_order'             => array('type' => self::TYPE_INT),
-            'tracking_number'     => array('type' => self::TYPE_STRING),
-            'shipping_service'     => array('type' => self::TYPE_STRING),
-            'shipping_cost'     => array('type' => self::TYPE_FLOAT),
-            'shop_number'         => array('type' => self::TYPE_INT),
-            'comments'             => array('type' => self::TYPE_STRING),
-            'status'             => array('type' => self::TYPE_INT)
+            'shopgate_order'        => array('type' => self::TYPE_STRING),
+            'id_order'              => array('type' => self::TYPE_INT),
+            'tracking_number'       => array('type' => self::TYPE_STRING),
+            'shipping_service'      => array('type' => self::TYPE_STRING),
+            'shipping_cost'         => array('type' => self::TYPE_FLOAT),
+            'shop_number'           => array('type' => self::TYPE_INT),
+            'comments'              => array('type' => self::TYPE_STRING),
+            'status'                => array('type' => self::TYPE_INT),
+            'is_sent_to_shopgate'   => array('type' => self::TYPE_INT)
         )
     );
 
@@ -86,16 +88,18 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
             $this->comments = pSQL($this->comments);
         }
         
-        $fields                     = array();
-        $fields['id_cart']             = (int)($this->id_cart);
-        $fields['id_order']         = (int)($this->id_order);
-        $fields['shopgate_order']     = pSQL(base64_encode(serialize($this->shopgate_order)));
-        $fields['order_number']     = pSQL($this->order_number);
-        $fields['shipping_service'] = pSQL($this->shipping_service);
-        $fields['shipping_cost']     = (float)($this->shipping_cost);
-        $fields['shop_number']         = pSQL($this->shop_number);
-        $fields['comments']         = $this->comments;
-        $fields['status']             = (int)($this->status);
+        $fields                         = array();
+        $fields['id_cart']              = (int)($this->id_cart);
+        $fields['id_order']             = (int)($this->id_order);
+        $fields['shopgate_order']       = pSQL(base64_encode(serialize($this->shopgate_order)));
+        $fields['order_number']         = pSQL($this->order_number);
+        $fields['shipping_service']     = pSQL($this->shipping_service);
+        $fields['shipping_cost']        = (float)($this->shipping_cost);
+        $fields['shop_number']          = pSQL($this->shop_number);
+        $fields['comments']             = $this->comments;
+        $fields['status']               = (int)($this->status);
+        $fields['tracking_number']      = pSQL($this->tracking_number);
+        $fields['is_sent_to_shopgate']  = (int)($this->is_sent_to_shopgate);
         return $fields;
     }
 
@@ -148,6 +152,55 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
         $query->where(pSQL($key).' = \''.pSQL($value).'\'');
 
         return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($query);
+    }
+
+    /**
+     * Returns array of all shopgate orders, where shipping is completed
+     * but not transferred to shopgate yet.
+     *
+     * @param int   $languageId
+     *
+     * @return array
+     */
+    public static function getUnsyncedShopgatOrderIds($languageId)
+    {
+        $shippedOrderStateIds = array();
+        $unsyncedOrders       = array();
+        if (version_compare(_PS_VERSION_, '1.5.0.0', '>=')) {
+            $orderStates = OrderState::getOrderStates($languageId);
+            foreach ($orderStates as $orderState) {
+                if ($orderState['shipped']) {
+                    $shippedOrderStateIds[] = $orderState['id_order_state'];
+                }
+            }
+
+            if (!empty($shippedOrderStateIds)) {
+                $query = 'SELECT so.id_order, so.id_shopgate_order
+                    FROM '._DB_PREFIX_.'shopgate_order AS so
+                        INNER JOIN '._DB_PREFIX_.'orders AS o on so.id_order=o.id_order
+                    WHERE so.`is_sent_to_shopgate` = 0
+                        AND o.`current_state` IN (' . implode(',', $shippedOrderStateIds).')';
+
+                $unsyncedOrders = Db::getInstance()->ExecuteS($query);
+            }
+        } else {
+            // Default methods for Prestashop version < 1.5.0.0
+            $shippedOrderStateIds[] = _PS_OS_DELIVERED_;
+            $shippedOrderStateIds[] = _PS_OS_SHIPPING_;
+
+            if (!empty($shippedOrderStateIds)) {
+                $query = 'SELECT so.id_order, so.id_shopgate_order
+                    FROM '._DB_PREFIX_.'shopgate_order AS so
+                        INNER JOIN '._DB_PREFIX_.'order_history AS oh on so.id_order=oh.id_order
+                    WHERE so.`is_sent_to_shopgate` = 0
+                        AND oh.`id_order_state` IN (' . implode(',', $shippedOrderStateIds).')
+                        GROUP BY oh.`id_order_state`';
+
+                $unsyncedOrders = Db::getInstance()->ExecuteS($query);
+            }
+        }
+
+        return $unsyncedOrders;
     }
 
     /**
@@ -451,5 +504,52 @@ class ShopgateOrderPrestashop extends ShopgateModObjectModel
         }
         
         return $requestSent;
+    }
+
+    /**
+     * @param string    $message
+     * @param int       $errorcount
+     */
+    public function setShippingComplete(&$message, &$errorcount)
+    {
+        $log                    = ShopgateLogger::getInstance();
+        $shopgateConfig         = new ShopgateConfigPrestashop();
+        $shopgateBuilder        = new ShopgateBuilder($shopgateConfig);
+        $shopgateMerchantApi    = $shopgateBuilder->buildMerchantApi();
+
+        try {
+            /** @var OrderCore $orderCore */
+            $orderCore      = new Order($this->id_order);
+            $trackingCode   = $orderCore->shipping_number;
+            if (Tools::strlen($trackingCode) > 32) {
+                $log->log("TrackingCode '" . $trackingCode . "' is too long", ShopgateLogger::LOGTYPE_DEBUG);
+                $trackingCode = '';
+            }
+
+            $shopgateMerchantApi->addOrderDeliveryNote(
+                $this->order_number,
+                ShopgateDeliveryNote::OTHER,
+                $trackingCode,
+                true
+            );
+            $message .= "Setting \"shipping complete\" for shopgate-order #{$this->order_number} successfully completed\n";
+            $this->is_sent_to_shopgate  = 1;
+            $this->tracking_number      = $trackingCode;
+            $this->update();
+        } catch (ShopgateMerchantApiException $e) {
+            if ($e->getCode() == ShopgateMerchantApiException::ORDER_SHIPPING_STATUS_ALREADY_COMPLETED) {
+                $log->log(
+                    "Order with order-number #{$this->order_number} already marked as complete at shopgate.",
+                    ShopgateLogger::LOGTYPE_DEBUG
+                );
+                $e                = null;
+
+                $this->is_sent_to_shopgate  = 1;
+                $this->update();
+            }
+        } catch (Exception $e) {
+            $errorcount++;
+            $message .= "Error while setting \"shipping complete\" for shopgate-order #{$this->order_number}\n";
+        }
     }
 }
