@@ -73,9 +73,11 @@ class ShopgateShipping
      */
     public function getCarrierIdByApiOrder($order)
     {
-        switch ($order->getShippingType())
-        {
+        switch ($order->getShippingType()) {
             case self::DEFAULT_PLUGIN_API_KEY:
+                /**
+                 * use carrier from system load by shopgate order
+                 */
                 if ($order->getShippingInfos() && $order->getShippingInfos()->getName()) {
                     return $order->getShippingInfos()->getName();
                 }
@@ -83,10 +85,10 @@ class ShopgateShipping
             default:
 
                 /**
-                 * use always shopgate carrier if shipping cost uses.
+                 * use always default carrier if shipping cost uses. will updated after place order to shopgate
                  */
-                if ($order->getShippingInfos()->getAmount() > 0) {
-                    return Configuration::get('SG_CARRIER_ID');
+                if ($order->getShippingInfos()->getAmountGross() > 0) {
+                    return Configuration::get('PS_CARRIER_DEFAULT');
                 }
 
                 if ($order->getShippingGroup()) {
@@ -281,5 +283,73 @@ class ShopgateShipping
         }
 
         return $countries;
+    }
+
+    /**
+     * @param ShopgateOrder $shopgateOrder
+     * @param OrderCore     $order
+     */
+    public function manipulateCarrier($shopgateOrder, $order)
+    {
+        /**
+         * update only if shipping amount > 0 and shipping type manuel
+         */
+        if ($shopgateOrder->getShippingType() != self::DEFAULT_PLUGIN_API_KEY && $shopgateOrder->getShippingInfos()->getAmountGross() > 0) {
+
+            $shopgateCarrierId = Configuration::get('SG_CARRIER_ID');
+
+            /** @var ShopgateShippingInfo $shippingInfo */
+            $shippingInfo = $shopgateOrder->getShippingInfos();
+
+            if (version_compare(_PS_VERSION_, '1.5.0.0', '>=')) {
+
+                /** @var OrderCarrierCore $orderCarrier */
+                $orderCarrier = new OrderCarrier((int)$order->getIdOrderCarrier());
+
+                $order->id_carrier      = (int)$shopgateCarrierId;
+                $orgShippingCostTaxIncl = $order->total_shipping_tax_incl;
+                $orgShippingCostTaxExcl = $order->total_shipping_tax_excl;
+
+                $amountPaymentTaxIncl = $shopgateOrder->getAmountShopgatePayment();
+
+                if ($shopgateOrder->getPaymentTaxPercent() && $shopgateOrder->getPaymentTaxPercent() > 0) {
+                    $amountPaymentTaxIncl = $shopgateOrder->getAmountShopgatePayment() + (($shopgateOrder->getAmountShopgatePayment() / 100) * $shopgateOrder->getPaymentTaxPercent());
+                }
+
+                $order->total_shipping_tax_incl = $shippingInfo->getAmountGross() + $amountPaymentTaxIncl;
+                $order->total_shipping_tax_excl = $shippingInfo->getAmountNet() + $shopgateOrder->getAmountShopgatePayment();
+                $order->carrier_tax_rate        = abs(100 * ($shippingInfo->getAmountGross() / $shippingInfo->getAmountNet() - 1));
+                $order->total_shipping          = $shippingInfo->getAmountGross() + $amountPaymentTaxIncl;
+
+                /**
+                 * add new payment and shipping cost
+                 */
+                $order->total_paid_tax_incl = $order->total_paid_tax_incl - $orgShippingCostTaxIncl + $shippingInfo->getAmountGross() + $amountPaymentTaxIncl;
+                $order->total_paid_tax_excl = $order->total_paid_tax_excl - $orgShippingCostTaxExcl + $shippingInfo->getAmountNet() + $shopgateOrder->getAmountShopgatePayment();
+                $order->total_paid          = $order->total_paid_tax_incl;
+
+                $orderCarrier->id_carrier             = (int)$shopgateCarrierId;
+                $orderCarrier->shipping_cost_tax_incl = $shippingInfo->getAmountGross() + $amountPaymentTaxIncl;
+                $orderCarrier->shipping_cost_tax_excl = $shippingInfo->getAmountNet() + $shopgateOrder->getAmountShopgatePayment();
+
+                $orderCarrier->save();
+
+            } else {
+
+                $order->id_carrier = (int)$shopgateCarrierId;
+                $orgShippingCost   = $order->total_shipping;
+                $orderTotalPaid    = $order->total_paid;
+
+                /**
+                 * add new payment and shipping cost
+                 */
+                $order->total_paid      = $orderTotalPaid - $orgShippingCost + $shippingInfo->getAmountGross() + $shopgateOrder->getAmountShopgatePayment();
+                $order->total_paid_real = $orderTotalPaid - $orgShippingCost + $shippingInfo->getAmountGross() + $shopgateOrder->getAmountShopgatePayment();
+                $order->total_shipping  = $shippingInfo->getAmountGross() + $shopgateOrder->getAmountShopgatePayment();
+
+            }
+
+            $order->save();
+        }
     }
 }

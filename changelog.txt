@@ -1,5 +1,10 @@
 '''English'''
 
+'''Version 2.9.55'''
+* added support of allowing product based carriers
+* uses Shopgate Library 2.9.36
+* fixed order status change after the order was already shipped
+
 '''Version 2.9.54'''
 * fixed compatibility issue for creating a constant
 * improved compatibility for multi shop support in product export

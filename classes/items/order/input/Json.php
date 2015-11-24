@@ -35,31 +35,8 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
             throw new ShopgateLibraryException(ShopgateLibraryException::PLUGIN_DUPLICATE_ORDER, sprintf('external_order_id: %s', $order->getOrderNumber()), true);
         }
 
-        /** @var CarrierCore $sgCarrier */
-        $sgCarrier = new Carrier(Configuration::get('SG_CARRIER_ID'));
-        if (version_compare(_PS_VERSION_, '1.5.0', '<') && empty($sgCarrier->name)) {
-            $sgCarrier->name = 'shopgate_tmp_carrier';
-        }
-
-        if ($order->getShippingType() != ShopgateShipping::DEFAULT_PLUGIN_API_KEY) {
-            if ($order->getShippingInfos()->getAmount() > 0) {
-
-                if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
-                    ShopgateModObjectModel::updateShippingPrice(pSQL($order->getShippingInfos()->getAmount()));
-                } else {
-                    $data = array(
-                        'price' => pSQL($order->getShippingInfos()->getAmount())
-                    );
-                    $where = 'a.id_carrier = '.(int)Configuration::get('SG_CARRIER_ID');
-                    ObjectModel::updateMultishopTable('Delivery', $data, $where);
-                }
-
-                $sgCarrier->is_free = 0;
-            } else {
-                $sgCarrier->is_free = 1;
-            }
-        }
-        $sgCarrier->update();
+        $context = Context::getContext();
+        $context->cookie->__set('shopgateOrder', serialize($order));
 
         $customerModel     = new ShopgateItemsCustomerImportJson($this->getPlugin());
         $paymentModel     = new ShopgatePayment($this->getModule());
@@ -172,6 +149,7 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
              */
             $delivery_option = array($this->getCart()->id_address_delivery => $shippingModel->getCarrierIdByApiOrder($order).',');
             $this->getCart()->setDeliveryOption($delivery_option);
+            $this->getCart()->save();
         }
 
         /**
@@ -210,22 +188,11 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
                 $this->getCart()->secure_key
             );
 
-            if (version_compare(_PS_VERSION_, '1.5.0.0', '<') && (int)$this->getModule()->currentOrder > 0
-                && $order->getShippingType() != ShopgateShipping::DEFAULT_PLUGIN_API_KEY && $order->getShippingInfos()->getAmount() > 0) {
-                ShopgateLogger::log('PS < 1.5.0.0: update shipping and payment cost', ShopgateLogger::LOGTYPE_DEBUG);
-                // in versions below 1.5.0.0 the shipping and payment costs must be updated after the order was imported
-                /** @var OrderCore $updateShopgateOrder */
-                $updateShopgateOrder                     = new Order($this->getModule()->currentOrder);
-                $updateShopgateOrder->total_shipping     = $order->getAmountShipping() + $order->getAmountShopPayment();
-                $updateShopgateOrder->total_paid        += $order->getAmountShipping() + $order->getAmountShopPayment();
-                $updateShopgateOrder->total_paid_real   += $order->getAmountShipping() + $order->getAmountShopPayment();
-                $updateShopgateOrder->update();
-            }
-
             /**
              * update shopgate order
              */
             if ($validateOder) {
+
                 $shopgateOrderItem->id_order = $this->getModule()->currentOrder;
                 $shopgateOrderItem->status = 1;
                 $shopgateOrderItem->save();
@@ -262,7 +229,32 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
 
         /** @var OrderCore $coreOrder */
         $coreOrder = new Order($shopgateOrderItem->id_order);
-
+        $returnValues = array(
+            'external_order_id' => $shopgateOrderItem->id_order,
+            'external_order_number' => $shopgateOrderItem->id_order
+        );
+    
+        // check if the order is already shipped and stop processing if the order is shipped already
+        $stopProcessing = false;
+        $currentOrderStateId = $coreOrder->getCurrentState();
+        if ($currentOrderStateId) {
+            $currentOrderState = new OrderState($currentOrderStateId);
+    
+            if (version_compare(_PS_VERSION_, '1.5.0.0', '>=')
+                && is_object($currentOrderState)
+                && property_exists($currentOrderState, 'shipped')
+                && $currentOrderState->shipped
+            ) {
+                $stopProcessing = true;
+            } elseif (version_compare(_PS_VERSION_, '1.5.0.0', '<') && in_array($currentOrderState->id, array(_PS_OS_DELIVERED_, _PS_OS_SHIPPING_))) {
+                $stopProcessing = true;
+            }
+            
+            if ($stopProcessing) {
+                return $returnValues;
+            }
+        }
+        
         /**
          * get order states
          */
@@ -277,10 +269,8 @@ class ShopgateItemsInputOrderJson extends ShopgateItemsOrder
 
         $shopgateOrderItem->updateFromOrder($order);
         $shopgateOrderItem->save();
+        
 
-        return array(
-            'external_order_id' => $shopgateOrderItem->id_order,
-            'external_order_number' => $shopgateOrderItem->id_order
-        );
+        return $returnValues;
     }
 }

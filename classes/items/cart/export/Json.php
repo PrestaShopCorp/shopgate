@@ -213,7 +213,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
             'external_coupons' => $this->_addCoupons($cart),
             'currency' => $this->_getCurrency(),
             'customer' => $this->_getCustomerGroups($cart),
-            'shipping_methods' => $this->_getCarriers(),
+            'shipping_methods' => $this->_getCarriers($cart),
             'payment_methods' => array()
         );
 
@@ -384,6 +384,29 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
             $resultItems[] = $resultItem;
         }
 
+        $allInvalid             = true;
+        $allowedShippingMethods = version_compare(_PS_VERSION_, '1.5.0.1', '<')
+            ? array()
+            : $this->_getAllowedCarriersByShopgateCart($cart);
+
+        foreach ($allowedShippingMethods as $carrierId => $allowed) {
+            if ($allowed) {
+                $allInvalid = false;
+            }
+        }
+
+        if (count($allowedShippingMethods)
+            && $allInvalid
+        ) {
+            foreach ($resultItems as $resultItem) {
+                $this->_addItemException(
+                    $resultItem,
+                    ShopgateLibraryException::CART_ITEM_INVALID_PRODUCT_COMBINATION,
+                    Tools::displayError('No Carrier available.')
+                );
+            }
+        }
+
         return $resultItems;
     }
 
@@ -423,18 +446,69 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
     }
 
     /**
+     * Checks for allowed carriers by products in cart
+     *
+     * @param   ShopgateCart    $cart
+     * @return array
+     */
+    protected function _getAllowedCarriersByShopgateCart($cart)
+    {
+        $productIds         = array();
+        $allowedCarriers    = array();
+        $shopId             = $this->getPlugin()->getContext()->shop->id;
+
+        foreach ($cart->getItems() as $item) {
+            list($productId, $attributeId) = ShopgateHelper::getProductIdentifiers($item);
+            $productIds[] = $productId;
+        }
+
+        if (!empty($productIds)) {
+            $query = 'SELECT COUNT(pc.id_product) as cnt, c.id_carrier
+                    FROM '._DB_PREFIX_.'product_carrier AS pc
+                        INNER JOIN '._DB_PREFIX_.'carrier AS c
+                            ON c.id_reference = pc.id_carrier_reference AND c.deleted = 0 AND c.active = 1
+                    WHERE pc.id_product IN (' . implode(',', $productIds) . ')
+                        AND pc.id_shop = ' . (int)$shopId . '
+                    GROUP BY pc.id_carrier_reference';
+
+            $result = Db::getInstance()->ExecuteS($query);
+            foreach ($result as $carrier) {
+                $allowedCarriers[$carrier['id_carrier']] = ($carrier['cnt'] == count($productIds))
+                    ? 1
+                    : 0;
+            }
+        }
+
+        return $allowedCarriers;
+    }
+
+    /**
      * create carriers
      *
+     * @param   ShopgateCart $cart
+     *
      * @return mixed
+     * @throws ShopgateLibraryException
      */
-    protected function _getCarriers()
+    protected function _getCarriers($cart)
     {
-        $resultsCarrier = array();
-
-        $mobileCarrierUse = unserialize(base64_decode(Configuration::get('SG_MOBILE_CARRIER')));
+        $resultsCarrier     = array();
+        $mobileCarrierUse   = unserialize(base64_decode(Configuration::get('SG_MOBILE_CARRIER')));
 
         if ($this->_deliveryAddress) {
+
+            $allowedCarriers = version_compare(_PS_VERSION_, '1.5.0.1', '<')
+                ? array()
+                : $this->_getAllowedCarriersByShopgateCart($cart);
+
             foreach (Carrier::getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), $this->getPlugin()->getContext()->customer->getGroups(), $this->getPlugin()->getContext()->cart) as $carrier) {
+
+                if (empty($allowedCarriers[$carrier['id_carrier']])
+                    && count($allowedCarriers)
+                ) {
+                    continue;
+                }
+
                 /** @var CarrierCore $carrierItem */
                 $carrierItem = new Carrier($carrier['id_carrier'], $this->getPlugin()->getContext()->language->id);
                 $taxRulesGroup = new TaxRulesGroup($carrierItem->id_tax_rules_group);
