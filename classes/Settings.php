@@ -43,17 +43,17 @@ class ShopgateSettings
     public static function getDefaultSettings()
     {
         $configuration = array(
-            'PS_OS_SHOPGATE' => 0,
-            'SG_LANGUAGE_ID' => 0,
-            'SG_MIN_QUANTITY_CHECK' => 0,
-            'SG_OUT_OF_STOCK_CHECK' => 0,
-            'SG_PRODUCT_DESCRIPTION' => self::PRODUCT_EXPORT_DESCRIPTION,
-            'SG_SUBSCRIBE_NEWSLETTER' => 0,
-            'SG_EXPORT_ROOT_CATEGORIES' => 0,
-            'SG_CARRIER_MAPPING' => array(),
-            'SG_MOBILE_CARRIER' => array(),
+            'PS_OS_SHOPGATE'             => 0,
+            'SG_LANGUAGE_ID'             => 0,
+            'SG_MIN_QUANTITY_CHECK'      => 0,
+            'SG_OUT_OF_STOCK_CHECK'      => 0,
+            'SG_PRODUCT_DESCRIPTION'     => self::PRODUCT_EXPORT_DESCRIPTION,
+            'SG_SUBSCRIBE_NEWSLETTER'    => 0,
+            'SG_EXPORT_ROOT_CATEGORIES'  => 0,
+            'SG_CARRIER_MAPPING'         => array(),
+            'SG_MOBILE_CARRIER'          => array(),
             'SHOPGATE_EXPORT_PRICE_TYPE' => Shopgate_Model_Catalog_Price::DEFAULT_PRICE_TYPE_NET,
-            'SG_CANCELLATION_STATUS' => 0,
+            'SG_CANCELLATION_STATUS'     => 0,
         );
 
         return $configuration;
@@ -61,6 +61,7 @@ class ShopgateSettings
 
     /**
      * @param $paymentIdentifier
+     *
      * @return string
      */
     public static function getOrderStateKey($paymentIdentifier)
@@ -70,12 +71,13 @@ class ShopgateSettings
 
     /**
      * @param $module
+     *
      * @return array
      */
     public static function getProductExportDescriptionsArray($module)
     {
         return array(
-            self::PRODUCT_EXPORT_DESCRIPTION => $module->l('Description'),
+            self::PRODUCT_EXPORT_DESCRIPTION       => $module->l('Description'),
             self::PRODUCT_EXPORT_SHORT_DESCRIPTION => $module->l('Short Description'),
             self::PRODUCT_EXPORT_BOTH_DESCRIPTIONS => $module->l('Short Description + Description')
         );
@@ -83,6 +85,7 @@ class ShopgateSettings
 
     /**
      * @param $module
+     *
      * @return array
      */
     protected static function getCustomerGroups($module)
@@ -99,11 +102,11 @@ class ShopgateSettings
 
         if (is_array($customerGroupsItems)) {
             foreach ($customerGroupsItems as $customerGroupsItem) {
-                $group               = array ();
+                $group               = array();
                 $group['id']         = $customerGroupsItem['id_group'];
                 $group['name']       = $customerGroupsItem['name'];
                 $group['is_default'] = $group['id'] == (int)Configuration::get('PS_GUEST_GROUP') ? true : false;
-                $customerGroups[] = $group;
+                $customerGroups[]    = $group;
             }
         }
 
@@ -112,18 +115,19 @@ class ShopgateSettings
 
     /**
      * @param $module
+     *
      * @return array
      */
     protected static function getProductTaxClasses($module)
     {
         $productTaxClassItems = Tax::getTaxes($module->context->language->id);
-        $productTaxClasses = array();
+        $productTaxClasses    = array();
 
         if (is_array($productTaxClassItems) && Configuration::get('PS_TAX') == 1) {
             foreach ($productTaxClassItems as $productTaxClassItem) {
-                $taxClass        = array ();
-                $taxClass['id']  = $productTaxClassItem['id_tax'];
-                $taxClass['key'] = $productTaxClassItem['name'];
+                $taxClass            = array();
+                $taxClass['id']      = $productTaxClassItem['id_tax'];
+                $taxClass['key']     = $productTaxClassItem['name'];
                 $productTaxClasses[] = $taxClass;
             }
         }
@@ -147,37 +151,40 @@ class ShopgateSettings
 
     /**
      * @param $module
+     *
      * @return array
      */
     protected static function getTaxRatesOldVersions($module)
     {
-        $taxRatesQuery = 'SELECT c.id_country,c.id_zone,c.iso_code,z.id_zone,z.name,tl.name,t.rate,t.id_tax,ts.id_state FROM '._DB_PREFIX_.'country AS c
-                        JOIN '._DB_PREFIX_.'zone AS z ON (c.id_zone=z.id_zone AND z.active=1)
-                        JOIN '._DB_PREFIX_.'tax_zone AS tz ON tz.id_tax=z.id_zone
-                        JOIN '._DB_PREFIX_.'tax_lang AS tl ON (tl.id_tax=tz.id_tax AND tl.id_lang='.(int)$module->context->language->id.')
-                        LEFT JOIN '._DB_PREFIX_.'tax AS t ON t.id_tax=tl.id_tax
-                        LEFT JOIN '._DB_PREFIX_.'tax_state AS ts ON ts.id_tax=t.id_tax
+        $taxRatesQuery
+            = 'SELECT c.id_country,c.id_zone,c.iso_code,z.id_zone,z.name,tl.name,t.rate,t.id_tax,ts.id_state FROM '
+            . _DB_PREFIX_ . 'country AS c
+                        JOIN ' . _DB_PREFIX_ . 'zone AS z ON (c.id_zone=z.id_zone AND z.active=1)
+                        JOIN ' . _DB_PREFIX_ . 'tax_zone AS tz ON tz.id_tax=z.id_zone
+                        JOIN ' . _DB_PREFIX_ . 'tax_lang AS tl ON (tl.id_tax=tz.id_tax AND tl.id_lang='
+            . (int)$module->context->language->id . ')
+                        LEFT JOIN ' . _DB_PREFIX_ . 'tax AS t ON t.id_tax=tl.id_tax
+                        LEFT JOIN ' . _DB_PREFIX_ . 'tax_state AS ts ON ts.id_tax=t.id_tax
                         WHERE c.active=1 AND t.active = 1';
 
-        $resultRates = Db::getInstance()->ExecuteS($taxRatesQuery);
+        $resultRates    = Db::getInstance()->ExecuteS($taxRatesQuery);
         $resultTaxRates = array();
         foreach ($resultRates as $rate) {
             $taxItemTmp = array(
-                'id'           => $rate['id_tax'].'-'.$rate['id_country'].'-'.$rate['id_zone'],
-                'key'          => $rate['name'].'-'.$rate['iso_code'],
+                'id'           => $rate['id_tax'] . '-' . $rate['id_country'] . '-' . $rate['id_zone'],
+                'key'          => $rate['name'] . '-' . $rate['iso_code'],
                 'display_name' => $rate['name'],
                 'country'      => $rate['iso_code'],
                 'zipcode_type' => 'all',
             );
 
             if (!empty($rate['id_state']) && !empty($rate['id_country']) && !empty($rate['id_zone'])) {
-                $stateQuery =
-                    'SELECT * FROM '._DB_PREFIX_.'state AS s WHERE s.id_state='.$rate['id_state'].' AND s.id_country='.$rate['id_country'].' AND s.id_zone='.$rate['id_zone'];
+                $stateQuery   = 'SELECT * FROM ' . _DB_PREFIX_ . 'state AS s WHERE s.id_state=' . $rate['id_state']
+                    . ' AND s.id_country=' . $rate['id_country'] . ' AND s.id_zone=' . $rate['id_zone'];
                 $resultStates = Db::getInstance()->ExecuteS($stateQuery);
                 foreach ($resultStates as $state) {
-                    $taxItemTmp['state'] =
-                        $taxItemTmp['country'].'-'.$state['iso_code'];
-                    $resultTaxRates[] = $taxItemTmp;
+                    $taxItemTmp['state'] = $taxItemTmp['country'] . '-' . $state['iso_code'];
+                    $resultTaxRates[]    = $taxItemTmp;
                 }
             } else {
                 $resultTaxRates[] = $taxItemTmp;
@@ -193,25 +200,27 @@ class ShopgateSettings
      */
     protected static function getTaxIdFromTaxRule($taxRuleItem)
     {
-        return (version_compare(_PS_VERSION_, '1.4.0.17', '>=') ? $taxRuleItem[0][0]['id_tax'] : $taxRuleItem[0]['id_tax']);
+        return (version_compare(_PS_VERSION_, '1.4.0.17', '>=') ? $taxRuleItem[0][0]['id_tax']
+            : $taxRuleItem[0]['id_tax']);
     }
 
     /**
      * returns the key for the tax rate
      *
-     * @param $taxItem Tax
-     * @param $country string
-     * @param $state string
+     * @param TaxCore $taxItem
+     * @param string  $country
+     * @param string  $state
      *
      * @return string the tax rate key
      */
     protected static function getTaxRateKey($taxItem, $country, $state)
     {
-        return ($state ? $taxItem->name.'-'.$country.'-'.$state : $taxItem->name.'-'.$country);
+        return ($state ? $taxItem->name . '-' . $country . '-' . $state : $taxItem->name . '-' . $country);
     }
 
     /**
      * @param $module
+     *
      * @return array
      */
     protected static function getTaxRates($module)
@@ -224,27 +233,32 @@ class ShopgateSettings
             if (version_compare(_PS_VERSION_, '1.5.0.1', '<')) {
                 $taxRules = TaxRule::getTaxRulesByGroupId($taxRuleGroup['id_tax_rules_group']);
             } else {
-                $taxRules = TaxRule::getTaxRulesByGroupId($module->context->language->id, $taxRuleGroup['id_tax_rules_group']);
+                $taxRules = TaxRule::getTaxRulesByGroupId(
+                    $module->context->language->id,
+                    $taxRuleGroup['id_tax_rules_group']
+                );
             }
 
             // $idCountry is only relevant for Prestashop versions <1.5.0.1
             foreach ($taxRules as $idCountry => $taxRuleItem) {
-                $resultTaxRate = array();
+                $resultTaxRate                 = array();
                 $resultTaxRate['zipcode_type'] = 'all';
                 if (version_compare(_PS_VERSION_, '1.5.0.1', '>=')) {
                     $taxRuleItemTmp = new TaxRule($taxRuleItem['id_tax_rule']);
 
                     $idCountry = $taxRuleItemTmp->id_country;
-                    $idState = $taxRuleItemTmp->id_state;
-                    $idTax = $taxRuleItemTmp->id_tax;
+                    $idState   = $taxRuleItemTmp->id_state;
+                    $idTax     = $taxRuleItemTmp->id_tax;
 
                     if (!empty($taxRuleItemTmp->zipcode_from) && !empty($taxRuleItemTmp->zipcode_to)) {
-                        $resultTaxRate['zipcode_type']             = 'range';
-                        $resultTaxRate['zipcode_range_from']     = $taxRuleItemTmp->zipcode_from ? $taxRuleItemTmp->zipcode_from : null;
-                        $resultTaxRate['zipcode_range_to']         = $taxRuleItemTmp->zipcode_to ? $taxRuleItemTmp->zipcode_to : null;
+                        $resultTaxRate['zipcode_type']       = 'range';
+                        $resultTaxRate['zipcode_range_from'] = $taxRuleItemTmp->zipcode_from
+                            ? $taxRuleItemTmp->zipcode_from : null;
+                        $resultTaxRate['zipcode_range_to']   = $taxRuleItemTmp->zipcode_to ? $taxRuleItemTmp->zipcode_to
+                            : null;
                     }
                 } else {
-                    $idTax = self::getTaxIdFromTaxRule($taxRuleItem);
+                    $idTax   = self::getTaxIdFromTaxRule($taxRuleItem);
                     $idState = key($taxRuleItem);
                 }
 
@@ -256,23 +270,24 @@ class ShopgateSettings
                     $state = State::getNameById($idState);
                 } else {
                     $stateModel = new State($idState);
-                    $state = $stateModel->iso_code;
+                    $state      = $stateModel->iso_code;
                 }
 
                 $resultTaxRate['key'] = self::getTaxRateKey($taxItem, $country, $state);
 
                 //Fix for 1.4.x.x the taxes were exported multiple
                 if (version_compare(_PS_VERSION_, '1.5.0', '<')
-                    && self::arrayValueExists('key', $resultTaxRate['key'], $taxRates)) {
+                    && self::arrayValueExists('key', $resultTaxRate['key'], $taxRates)
+                ) {
                     continue;
                 }
                 if (!is_string($country)) {
                     $country = '';
                 }
-                $resultTaxRate['display_name']             = $taxItem->name;
-                $resultTaxRate['tax_percent']             = $taxItem->rate;
-                $resultTaxRate['country']                 = $country;
-                $resultTaxRate['state']                 = (!empty($state)) ? $country.'-'.$state : null;
+                $resultTaxRate['display_name'] = $taxItem->name;
+                $resultTaxRate['tax_percent']  = $taxItem->rate;
+                $resultTaxRate['country']      = $country;
+                $resultTaxRate['state']        = (!empty($state)) ? $country . '-' . $state : null;
 
                 if ($taxItem->active && Configuration::get('PS_TAX') == 1) {
                     $taxRates[] = $resultTaxRate;
@@ -285,6 +300,7 @@ class ShopgateSettings
 
     /**
      * @param $module
+     *
      * @return mixed
      */
     protected static function getTaxRules($module)
@@ -298,21 +314,21 @@ class ShopgateSettings
             $taxItem = ShopgateSettings::getTaxItemByTaxRuleGroupId($taxRuleGroup['id_tax_rules_group']);
 
             $rule = array(
-                'id' => $taxRuleGroup['id_tax_rules_group'],
-                'name' => $taxRuleGroup['name'],
+                'id'       => $taxRuleGroup['id_tax_rules_group'],
+                'name'     => $taxRuleGroup['name'],
                 'priority' => 0
             );
 
             $rule['product_tax_classes'] = array(
                 array(
-                    'id' => $taxItem->id,
+                    'id'  => $taxItem->id,
                     'key' => is_array($taxItem->name) ? reset($taxItem->name) : '',
                 )
             );
 
             $rule['customer_tax_classes'] = array(
                 array(
-                    'key' => 'default',
+                    'key'        => 'default',
                     'is_default' => true
                 )
             );
@@ -322,28 +338,31 @@ class ShopgateSettings
             if (version_compare(_PS_VERSION_, '1.5.0.1', '<')) {
                 $taxRulesPrestashop = TaxRule::getTaxRulesByGroupId($taxRuleGroup['id_tax_rules_group']);
             } else {
-                $taxRulesPrestashop = TaxRule::getTaxRulesByGroupId($module->context->language->id, $taxRuleGroup['id_tax_rules_group']);
+                $taxRulesPrestashop = TaxRule::getTaxRulesByGroupId(
+                    $module->context->language->id,
+                    $taxRuleGroup['id_tax_rules_group']
+                );
             }
 
             foreach ($taxRulesPrestashop as $idCountry => $taxRuleItem) {
                 if (version_compare(_PS_VERSION_, '1.5.0.1', '>=')) {
                     $taxRuleItem = new TaxRule($taxRuleItem['id_tax_rule']);
-                    $idTax = $taxRuleItem->id_tax;
-                    $idCountry = $taxRuleItem->id_country;
-                    $idState = $taxRuleItem->id_state;
+                    $idTax       = $taxRuleItem->id_tax;
+                    $idCountry   = $taxRuleItem->id_country;
+                    $idState     = $taxRuleItem->id_state;
                 } else {
-                    $idTax = self::getTaxIdFromTaxRule($taxRuleItem);
+                    $idTax   = self::getTaxIdFromTaxRule($taxRuleItem);
                     $idState = key($taxRuleItem);
                 }
 
                 /** @var TaxCore $taxItem */
                 $taxItem = new Tax($idTax, $module->context->language->id);
 
-                $country = Country::getIsoById($idCountry);
+                $country    = Country::getIsoById($idCountry);
                 $stateModel = new State($idState);
-                $state = $stateModel->iso_code;
+                $state      = $stateModel->iso_code;
 
-                $resultTaxRate = array();
+                $resultTaxRate        = array();
                 $resultTaxRate['key'] = self::getTaxRateKey($taxItem, $country, $state);
 
                 //Fix for 1.4.x.x the taxes were exported multiple
@@ -364,9 +383,9 @@ class ShopgateSettings
 
 
     /**
-     * @param $productTaxClasses array
+     * @param $productTaxClasses  array
      * @param $customerTaxClasses array
-     * @param $taxRates array
+     * @param $taxRates           array
      *
      * @return array
      */
@@ -374,8 +393,8 @@ class ShopgateSettings
     {
         $taxRules = array();
         foreach ($productTaxClasses as $productTaxClass) {
-            $taxRule = array(
-                'id'                   =>'',
+            $taxRule                          = array(
+                'id'                   => '',
                 'name'                 => '',
                 'priority'             => 0,
                 'customer_tax_classes' => $customerTaxClasses,
@@ -383,17 +402,17 @@ class ShopgateSettings
                 'tax_rates'            => array(),
             );
             $taxRule['product_tax_classes'][] = $productTaxClass;
-            $taxRule['id'] = $productTaxClass['id'];
-            $taxRule['name'] = $productTaxClass['key'];
+            $taxRule['id']                    = $productTaxClass['id'];
+            $taxRule['name']                  = $productTaxClass['key'];
             foreach ($taxRates as $taxRate) {
                 $taxIds = explode('-', $taxRate['id']);// first is the tax id
-                $taxId = $taxIds[0];
+                $taxId  = $taxIds[0];
                 if ((int)$productTaxClass['id'] == (int)$taxId) {
                     if (isset($taxRules[$taxId])) {
                         $taxRules[$taxId]['tax_rates'][] = $taxRule;
                         continue 2;
                     } else {
-                        $taxRule['tax_rates'][] = array ('id' => $taxRate['id'], 'key' => $taxRate['key']);
+                        $taxRule['tax_rates'][] = array('id' => $taxRate['id'], 'key' => $taxRate['key']);
                     }
                 }
             }
@@ -421,7 +440,7 @@ class ShopgateSettings
         }
 
         $select = sprintf(
-            'SELECT DISTINCT id_tax from %stax_rule WHERE id_tax_rules_group = %d',
+            'SELECT DISTINCT id_tax FROM `%stax_rule` WHERE id_tax_rules_group = %d',
             _DB_PREFIX_,
             $ruleGroupId
         );
@@ -436,36 +455,82 @@ class ShopgateSettings
     }
 
     /**
+     * @return array all payment methods
+     */
+    protected static function getPaymentMethods()
+    {
+        $paymentModules          = array();
+        $installedPaymentModules = self::getInstalledPaymentModules();
+
+        foreach ($installedPaymentModules as $paymentModule) {
+            $paymentModules[] = array('id' => $paymentModule['name']);
+        }
+
+        return $paymentModules;
+    }
+
+    /**
+     * @return array all active payment methods
+     */
+    private static function getInstalledPaymentModules()
+    {
+        if (version_compare(_PS_VERSION_, '1.4.5.0', '<')) {
+            $hookPayment = 'Payment';
+            if (
+            Db::getInstance()->getValue(
+                'SELECT `id_hook` FROM `' . _DB_PREFIX_ . 'hook` WHERE `name` = \'displayPayment\''
+            )
+            ) {
+                $hookPayment = 'displayPayment';
+            }
+
+            $paymentModules = Db::getInstance()->executeS(
+                'SELECT DISTINCT m.`id_module`, h.`id_hook`, m.`name`, hm.`position`
+                FROM `' . _DB_PREFIX_ . 'module` m
+                LEFT JOIN `' . _DB_PREFIX_ . 'hook_module` hm ON hm.`id_module` = m.`id_module`
+                LEFT JOIN `' . _DB_PREFIX_ . 'hook` h ON hm.`id_hook` = h.`id_hook`
+                WHERE h.`name` = \'' . pSQL($hookPayment) . '\''
+            );
+        } else {
+            $paymentModules = PaymentModule::getInstalledPaymentModules();
+        }
+
+        if ($paymentModules === null) {
+            $paymentModules = array();
+        }
+
+        return $paymentModules;
+    }
+
+    /**
      * @param ShopgatePluginPrestashop $module
+     *
      * @return array
      */
     public static function getShopgateSettings($module)
     {
         $result = array();
 
-        /**
-         * customer groups
-         */
         $result['customer_groups'] = ShopgateSettings::getCustomerGroups($module);
 
-        /**
-         * product tax
-         */
+        $result['payment_methods'] = ShopgateSettings::getPaymentMethods();
+
         $result['tax']['product_tax_classes'] = ShopgateSettings::getProductTaxClasses($module);
 
-        /**
-         * customer tax classes
-         */
         $result['tax']['customer_tax_classes'] = array(
             array(
-                'key' => 'default',
+                'key'        => 'default',
                 'is_default' => true
             )
         );
 
         if (version_compare(_PS_VERSION_, '1.4.0.4', '<=')) {
             $result['tax']['tax_rates'] = ShopgateSettings::getTaxRatesOldVersions($module);
-            $result['tax']['tax_rules'] = ShopgateSettings::getTaxRulesOldVersions($result['tax']['product_tax_classes'], $result['tax']['customer_tax_classes'], $result['tax']['tax_rates']);
+            $result['tax']['tax_rules'] = ShopgateSettings::getTaxRulesOldVersions(
+                $result['tax']['product_tax_classes'],
+                $result['tax']['customer_tax_classes'],
+                $result['tax']['tax_rates']
+            );
         } else {
             $result['tax']['tax_rates'] = ShopgateSettings::getTaxRates($module);
             $result['tax']['tax_rules'] = ShopgateSettings::getTaxRules($module);
@@ -475,7 +540,7 @@ class ShopgateSettings
          * allowed_shipping_countries and allowed_address_countries
          */
         $result['allowed_shipping_countries'] = array();
-        $result['allowed_address_countries'] = array();
+        $result['allowed_address_countries']  = array();
 
         $countryResultItems = array();
         $addressResultItems = array();
@@ -487,7 +552,7 @@ class ShopgateSettings
                     $resultStates[] = $state['iso_code'];
                 }
             } else {
-                $resultStates = array (ShopgateShipping::CARRIER_CODE_ALL);
+                $resultStates = array(ShopgateShipping::CARRIER_CODE_ALL);
             }
             $countryResultItems[$country['iso_code']] = $resultStates;
         }
@@ -495,7 +560,7 @@ class ShopgateSettings
         foreach ($countryResultItems as $country => $state) {
             $item = array(
                 'country' => $country,
-                'state' => $state
+                'state'   => $state
             );
 
             $result['allowed_shipping_countries'][] = $item;
@@ -508,7 +573,7 @@ class ShopgateSettings
                     $resultStates[] = $state['iso_code'];
                 }
             } else {
-                $resultStates = array (ShopgateShipping::CARRIER_CODE_ALL);
+                $resultStates = array(ShopgateShipping::CARRIER_CODE_ALL);
             }
 
             $addressResultItems[$country['iso_code']] = $resultStates;
@@ -517,7 +582,7 @@ class ShopgateSettings
         foreach ($addressResultItems as $country => $state) {
             $item = array(
                 'country' => $country,
-                'state' => $state
+                'state'   => $state
             );
 
             $result['allowed_address_countries'][] = $item;

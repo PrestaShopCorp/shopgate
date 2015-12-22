@@ -26,6 +26,16 @@ class ShopgatePluginPrestashop extends ShopgatePlugin
     protected $config;
 
     /**
+     * @var Context
+     */
+    public $context;
+
+    /**
+     * @var Smarty
+     */
+    public $smarty;
+    
+    /**
      *
      */
     const PREFIX = 'BD';

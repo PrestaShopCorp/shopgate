@@ -29,7 +29,7 @@ if (!defined('_PS_VERSION_')) {
 /**
  * define shopgate version
  */
-define('SHOPGATE_PLUGIN_VERSION', '2.9.54');
+define('SHOPGATE_PLUGIN_VERSION', '2.9.56');
 
 /**
  * define module dir
@@ -44,13 +44,14 @@ define('SHOPGATE_DIR', _PS_MODULE_DIR_.'shopgate/');
  * extend
  */
 if (!in_array('BWProduct', get_declared_classes()) && version_compare(_PS_VERSION_, '1.5.2.0', '<')) {
-    require_once(SHOPGATE_DIR.'extend/Product.php');
+    require_once(SHOPGATE_DIR.'core/extend/Product.php');
 }
 
 /**
  * global
  */
 require_once(SHOPGATE_DIR.'vendors/shopgate_library/shopgate.php');
+require_once(SHOPGATE_DIR.'core/HookHelper.php');
 require_once(SHOPGATE_DIR.'classes/Config.php');
 require_once(SHOPGATE_DIR.'classes/Settings.php');
 require_once(SHOPGATE_DIR.'classes/Plugin.php');
@@ -148,7 +149,7 @@ class ShopGate extends PaymentModule
             $this->tab = 'mobile';
         }
 
-        $this->version = '2.9.54';
+        $this->version = '2.9.56';
         $this->author = 'Shopgate';
         $this->module_key = '';
 
@@ -178,6 +179,8 @@ class ShopGate extends PaymentModule
             'adminOrder',
             'updateOrderStatus',
             'updateQuantity',
+            'actionValidateOrder',
+            'newOrder'
         );
 
         if (version_compare(_PS_VERSION_, '1.5.0.0', '>=')) {
@@ -871,5 +874,34 @@ class ShopGate extends PaymentModule
         }
 
         return true;
+    }
+
+    /**
+     * @param array $params
+     *
+     * @return bool
+     */
+    public function hookActionValidateOrder($params)
+    {
+        /** @var ContextCore $context */
+        $context = Context::getContext();
+        if ($context->cookie->__get('shopgateOrder')) {
+            $shopgateShippingModel = new ShopgateShipping(new ShopGate());
+            $shopgateOrder         = unserialize($context->cookie->__get('shopgateOrder'));
+            $order                 = $params['order'];
+            $shopgateShippingModel->manipulateCarrier($shopgateOrder, $order);
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array $params
+     *
+     * @return bool
+     */
+    public function hookNewOrder($params)
+    {
+        return $this->hookActionValidateOrder($params);
     }
 }
