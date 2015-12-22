@@ -41,7 +41,9 @@ class ShopgateConfigPrestashop extends ShopgateConfig
             array(
                 'external_coupons',
                 'shipping_methods',
-                'items'
+                'items',
+                'payment_methods',
+                'customer'
         );
 
         /**

@@ -1,5 +1,10 @@
 '''English'''
 
+'''Version 2.9.56'''
+* fixing sort order for categories
+* implemented return of payment methods in method get_settings
+* implemented restriction of valid payment methods while checking/validating the cart
+
 '''Version 2.9.55'''
 * added support of allowing product based carriers
 * uses Shopgate Library 2.9.36

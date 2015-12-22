@@ -70,6 +70,7 @@ class ShopgateItemsCategory extends ShopgateItemsAbstract
             );
 
             $categoryItem['url_image'] = $categoryImageUrl;
+            $categoryItem['position'] = $categoryInfo->position;
             $categoryItem['order_index'] = $categoryInfo->position;
 
             $categoryItems[] = $categoryItem;
@@ -86,27 +87,25 @@ class ShopgateItemsCategory extends ShopgateItemsAbstract
             }
         }
 
-        $categoryPositionData = array();
+        /**
+         * calculate max category position
+         */
+        $maxCategoryPosition = array();
         foreach ($categoryItems as $categoryItem) {
             $key = $categoryItem['parent_id'] == '' ? 'root' : $categoryItem['parent_id'];
-            if (!array_key_exists($key, $categoryPositionData)) {
-                $categoryPositionData[$key] = 0;
+            if (!array_key_exists($key, $maxCategoryPosition)) {
+                $maxCategoryPosition[$key] = 1;
             } else {
-                $categoryPositionData[$key]++;
+                if ($categoryItem['position'] > $maxCategoryPosition[$key]) {
+                    $maxCategoryPosition[$key] = $categoryItem['position'];
+                }
             }
         }
 
-        $categoryNewPositionData = array();
         foreach ($categoryItems as $categoryItem) {
             $key = $categoryItem['parent_id'] == '' ? 'root' : $categoryItem['parent_id'];
-            if (!array_key_exists($key, $categoryNewPositionData)) {
-                $categoryNewPositionData[$key] = 0;
-            } else {
-                $categoryNewPositionData[$key]++;
-            }
-
-            $categoryItem['order_index'] = $categoryPositionData[$key] - $categoryNewPositionData[$key];
-            $result[] = $categoryItem;
+            $categoryItem['order_index'] = $maxCategoryPosition[$key] - $categoryItem['order_index'];
+            $result[]                    = $categoryItem;
         }
 
         return $result;

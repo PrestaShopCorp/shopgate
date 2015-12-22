@@ -71,6 +71,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
     /**
      * @param ShopgateCart $cart
+     *
      * @return array
      */
     public function checkStock(ShopgateCart $cart)
@@ -101,12 +102,12 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
              */
             if ($product->hasAttributes()) {
                 $invalidAttribute = false;
-                $message = '';
+                $message          = '';
 
                 if (!$attributeId) {
                     $cartItem->setError(ShopgateLibraryException::UNKNOWN_ERROR_CODE);
                     $cartItem->setErrorText('attributeId required');
-                    $message = 'attributeId required';
+                    $message          = 'attributeId required';
                     $invalidAttribute = true;
                 } else {
                     $validAttributeId = false;
@@ -126,7 +127,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
                     if (!$validAttributeId) {
                         $invalidAttribute = true;
-                        $message = 'invalid attributeId';
+                        $message          = 'invalid attributeId';
                     }
                 }
 
@@ -140,13 +141,25 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
             if ($product->id) {
                 if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
-                    $quantity = $product->getStockAvailable();//getQuantityAvailableByProduct($productId, $attributeId, $this->getPlugin()->getContext()->shop->id);
+                    $quantity = $product->getStockAvailable(
+                    );//getQuantityAvailableByProduct($productId, $attributeId, $this->getPlugin()->getContext()->shop->id);
                 } else {
-                    $quantity = StockAvailable::getQuantityAvailableByProduct($productId, $attributeId, $this->getPlugin()->getContext()->shop->id);
+                    $quantity = StockAvailable::getQuantityAvailableByProduct(
+                        $productId,
+                        $attributeId,
+                        $this->getPlugin()->getContext()->shop->id
+                    );
                 }
 
                 $cartItem->setStockQuantity($quantity);
-                $cartItem->setIsBuyable($product->available_for_order && ($attributeId ? Attribute::checkAttributeQty($attributeId, ShopgateItemsCartExportJson::DEFAULT_QTY_TO_CHECK) : $product->checkQty(ShopgateItemsCartExportJson::DEFAULT_QTY_TO_CHECK)) || Product::isAvailableWhenOutOfStock($product->out_of_stock) ? 1 : 0);
+                $cartItem->setIsBuyable(
+                    $product->available_for_order
+                    && ($attributeId ? Attribute::checkAttributeQty(
+                        $attributeId,
+                        ShopgateItemsCartExportJson::DEFAULT_QTY_TO_CHECK
+                    ) : $product->checkQty(ShopgateItemsCartExportJson::DEFAULT_QTY_TO_CHECK))
+                    || Product::isAvailableWhenOutOfStock($product->out_of_stock) ? 1 : 0
+                );
             } else {
                 $cartItem->setError(ShopgateLibraryException::CART_ITEM_PRODUCT_NOT_FOUND);
                 $cartItem->setErrorText(ShopgateLibraryException::getMessageFor($cartItem->getError()));
@@ -160,6 +173,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
     /**
      * @param ShopgateCart $cart
+     *
      * @return array
      */
     public function checkCart(ShopgateCart $cart)
@@ -171,7 +185,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $cart->getDeliveryAddress()->setPhone($cart->getPhone());
             }
 
-            $this->_deliveryAddress = $this->_createAddress($cart->getDeliveryAddress());
+            $this->_deliveryAddress              = $this->_createAddress($cart->getDeliveryAddress());
             $this->_deliveryAddress->id_customer = $this->getPlugin()->getContext()->customer->id;
             $this->_deliveryAddress->save();
 
@@ -184,7 +198,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 $cart->getInvoiceAddress()->setPhone($cart->getPhone());
             }
 
-            $this->_invoiceAddress = $this->_createAddress($cart->getInvoiceAddress());
+            $this->_invoiceAddress               = $this->_createAddress($cart->getInvoiceAddress());
             $this->_deliveryAddress->id_customer = $this->getPlugin()->getContext()->customer->id;
             $this->_invoiceAddress->save();
 
@@ -209,19 +223,82 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
          * don't change the direction
          */
         $result = array(
-            'items' => $this->_addItems($cart),
+            'items'            => $this->_addItems($cart),
             'external_coupons' => $this->_addCoupons($cart),
-            'currency' => $this->_getCurrency(),
-            'customer' => $this->_getCustomerGroups($cart),
+            'currency'         => $this->_getCurrency(),
+            'customer'         => $this->_getCustomerGroups($cart),
             'shipping_methods' => $this->_getCarriers($cart),
-            'payment_methods' => array()
+            'payment_methods'  => $this->_getValidPaymentMethods()
         );
 
         return $result;
     }
 
     /**
+     * We try to emulate the payment method selection in the best possible way.
+     *
+     * the logic is copied, mixed and adapted from version 1.4.2.5 and 1.6.0.9
+     */
+    protected function _getValidPaymentMethods()
+    {
+        $paymentMethods = array();
+        if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
+            global $cookie;
+            $cookie->id_customer = $this->getPlugin()->getContext()->cart->id_customer;
+        }
+
+        if (
+            !$this->getPlugin()->getContext()->cart->id_customer
+            || !Customer::customerIdExistsStatic($this->getPlugin()->getContext()->cart->id_customer)
+            || Customer::isBanned($this->getPlugin()->getContext()->cart->id_customer)
+        ) {
+            // customer must be assigned, exist and not banned
+            return $paymentMethods;
+        }
+        $address_delivery = new Address($this->getPlugin()->getContext()->cart->id_address_delivery);
+
+        $address_invoice = $this->getPlugin()->getContext()->cart->id_address_delivery
+            == $this->getPlugin()->getContext()->cart->id_address_invoice
+                ? $address_delivery
+                : new Address($this->getPlugin()->getContext()->cart->id_address_invoice);
+        
+        if (
+            !$this->getPlugin()->getContext()->cart->id_address_delivery
+            || !$this->getPlugin()->getContext()->cart->id_address_invoice
+            || !Validate::isLoadedObject($address_delivery)
+            || !Validate::isLoadedObject($address_invoice)
+            || $address_invoice->deleted
+            || $address_delivery->deleted
+        ) {
+            // the invoice and delivery adress must be valid
+            return $paymentMethods;
+        }
+
+        if (!$this->getPlugin()->getContext()->cart->id_currency) {
+            // A currency must be selected
+            return $paymentMethods;
+        }
+        
+        $hookArgs = array(
+            'cookie' => $this->getPlugin()->getContext()->cookie,
+            'cart'   => $this->getPlugin()->getContext()->cart
+        );
+        
+        $HookHelper = new HookHelper();
+        $generatedPaymentMethods = $HookHelper->hook($hookArgs, $this->getPlugin()->getContext());
+
+        foreach ($generatedPaymentMethods as $generatedPaymentMethod) {
+            $paymentMethod = new ShopgatePaymentMethod();
+            $paymentMethod->setId($generatedPaymentMethod);
+            $paymentMethods[] = $paymentMethod;
+        }
+
+        return $paymentMethods;
+    }
+
+    /**
      * @param ShopgateCart $cart
+     *
      * @return array
      * @throws PrestaShopException
      */
@@ -293,6 +370,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
     /**
      * @param ShopgateCart $cart
+     *
      * @return ShopgateCartCustomer
      */
     protected function _getCustomerGroups(ShopgateCart $cart)
@@ -301,7 +379,11 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
         $group = new ShopgateCartCustomerGroup();
         $group->setId(
-            $cart->getExternalCustomerGroupId() ? $cart->getExternalCustomerGroupId() : Configuration::get('PS_UNIDENTIFIED_GROUP')
+            $cart->getExternalCustomerGroupId()
+            ? $cart->getExternalCustomerGroupId()
+            : Configuration::get(
+                'PS_UNIDENTIFIED_GROUP'
+            )
         );
 
         $customer->setCustomerGroups(array($group));
@@ -311,6 +393,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
     /**
      * @param $cart
+     *
      * @return array
      */
     protected function _addItems($cart)
@@ -338,7 +421,11 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
              * validate product
              */
             if (!$this->_validateProduct($product, $attributeId)) {
-                $this->_addItemException($resultItem, ShopgateLibraryException::CART_ITEM_PRODUCT_NOT_FOUND, sprintf('ProductId #%s AttributeId #%s', $productId, $attributeId));
+                $this->_addItemException(
+                    $resultItem,
+                    ShopgateLibraryException::CART_ITEM_PRODUCT_NOT_FOUND,
+                    sprintf('ProductId #%s AttributeId #%s', $productId, $attributeId)
+                );
                 $resultItems[] = $resultItem;
                 continue;
             }
@@ -361,9 +448,13 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                  */
                 switch ($addItemResult) {
                     case -1:
-                        $resultItem->setQtyBuyable($attributeId ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity);
+                        $resultItem->setQtyBuyable(
+                            $attributeId ? (int)Attribute::getAttributeMinimalQty($attributeId)
+                            : (int)$product->minimal_quantity
+                        );
 
-                        $minimalQuantity = ($attributeId) ? (int)Attribute::getAttributeMinimalQty($attributeId) : (int)$product->minimal_quantity;
+                        $minimalQuantity = ($attributeId) ? (int)Attribute::getAttributeMinimalQty($attributeId)
+                            : (int)$product->minimal_quantity;
 
                         $this->_addItemException(
                             $resultItem,
@@ -372,7 +463,11 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                         );
                         break;
                     default:
-                        $this->_addItemException($resultItem, ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE, Tools::displayError('There isn\'t enough product in stock.'));
+                        $this->_addItemException(
+                            $resultItem,
+                            ShopgateLibraryException::CART_ITEM_REQUESTED_QUANTITY_NOT_AVAILABLE,
+                            Tools::displayError('There isn\'t enough product in stock.')
+                        );
                         break;
                 }
 
@@ -420,7 +515,8 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
     /**
      * @param ProductCore $product
-     * @param $attributeId
+     * @param             $attributeId
+     *
      * @return bool
      */
     protected function _validateProduct(ProductCore $product, $attributeId)
@@ -448,24 +544,26 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
     /**
      * Checks for allowed carriers by products in cart
      *
-     * @param   ShopgateCart    $cart
+     * @param   ShopgateCart $cart
+     *
      * @return array
      */
     protected function _getAllowedCarriersByShopgateCart($cart)
     {
-        $productIds         = array();
-        $allowedCarriers    = array();
-        $shopId             = $this->getPlugin()->getContext()->shop->id;
+        $productIds      = array();
+        $allowedCarriers = array();
+        $shopId          = $this->getPlugin()->getContext()->shop->id;
 
         foreach ($cart->getItems() as $item) {
             list($productId, $attributeId) = ShopgateHelper::getProductIdentifiers($item);
-            $productIds[] = $productId;
+            $productIds[] = (int)$productId;
         }
 
         if (!empty($productIds)) {
-            $query = 'SELECT COUNT(pc.id_product) as cnt, c.id_carrier
-                    FROM '._DB_PREFIX_.'product_carrier AS pc
-                        INNER JOIN '._DB_PREFIX_.'carrier AS c
+            $query
+                = 'SELECT COUNT(pc.id_product) AS cnt, c.id_carrier
+                    FROM ' . _DB_PREFIX_ . 'product_carrier AS pc
+                        INNER JOIN ' . _DB_PREFIX_ . 'carrier AS c
                             ON c.id_reference = pc.id_carrier_reference AND c.deleted = 0 AND c.active = 1
                     WHERE pc.id_product IN (' . implode(',', $productIds) . ')
                         AND pc.id_shop = ' . (int)$shopId . '
@@ -492,17 +590,19 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
      */
     protected function _getCarriers($cart)
     {
-        $resultsCarrier     = array();
-        $mobileCarrierUse   = unserialize(base64_decode(Configuration::get('SG_MOBILE_CARRIER')));
+        $resultsCarrier   = array();
+        $mobileCarrierUse = unserialize(base64_decode(Configuration::get('SG_MOBILE_CARRIER')));
 
         if ($this->_deliveryAddress) {
 
             $allowedCarriers = version_compare(_PS_VERSION_, '1.5.0.1', '<')
-                ? array()
-                : $this->_getAllowedCarriersByShopgateCart($cart);
+                ? array() : $this->_getAllowedCarriersByShopgateCart($cart);
 
-            foreach (Carrier::getCarriersForOrder(Address::getZoneById($this->_deliveryAddress->id), $this->getPlugin()->getContext()->customer->getGroups(), $this->getPlugin()->getContext()->cart) as $carrier) {
-
+            foreach (Carrier::getCarriersForOrder(
+                Address::getZoneById($this->_deliveryAddress->id),
+                $this->getPlugin()->getContext()->customer->getGroups(),
+                $this->getPlugin()->getContext()->cart
+            ) as $carrier) {
                 if (empty($allowedCarriers[$carrier['id_carrier']])
                     && count($allowedCarriers)
                 ) {
@@ -510,7 +610,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
                 }
 
                 /** @var CarrierCore $carrierItem */
-                $carrierItem = new Carrier($carrier['id_carrier'], $this->getPlugin()->getContext()->language->id);
+                $carrierItem   = new Carrier($carrier['id_carrier'], $this->getPlugin()->getContext()->language->id);
                 $taxRulesGroup = new TaxRulesGroup($carrierItem->id_tax_rules_group);
                 $resultCarrier = new ShopgateShippingMethod();
 
@@ -574,14 +674,15 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
             /**
              * create dummy customer
              */
-            $customerGroup = $this->_getCustomerGroups($cart);
-            $this->getPlugin()->getContext()->customer = new Customer();
-            $this->getPlugin()->getContext()->customer->lastname = self::DEFAULT_CUSTOMER_LAST_NAME;
-            $this->getPlugin()->getContext()->customer->firstname = self::DEFAULT_CUSTOMER_FIRST_NAME;
-            $this->getPlugin()->getContext()->customer->email = self::DEFAULT_CUSTOMER_EMAIL;
-            $this->getPlugin()->getContext()->customer->passwd = self::DEFAULT_CUSTOMER_PASSWD;
-            $this->getPlugin()->getContext()->customer->id_default_group =
-                current($customerGroup->getCustomerGroups())->getId();
+            $customerGroup                                               = $this->_getCustomerGroups($cart);
+            $this->getPlugin()->getContext()->customer                   = new Customer();
+            $this->getPlugin()->getContext()->customer->lastname         = self::DEFAULT_CUSTOMER_LAST_NAME;
+            $this->getPlugin()->getContext()->customer->firstname        = self::DEFAULT_CUSTOMER_FIRST_NAME;
+            $this->getPlugin()->getContext()->customer->email            = self::DEFAULT_CUSTOMER_EMAIL;
+            $this->getPlugin()->getContext()->customer->passwd           = self::DEFAULT_CUSTOMER_PASSWD;
+            $this->getPlugin()->getContext()->customer->id_default_group = current(
+                $customerGroup->getCustomerGroups()
+            )->getId();
 
             $this->getPlugin()->getContext()->customer->add();
 
@@ -599,7 +700,9 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
         $shippingModel = new ShopgateShipping($this->getModule());
 
         $tmpOrder = new ShopgateOrder();
-        $tmpOrder->setShippingType($cart->getShippingType() ? $cart->getShippingType() : ShopgateShipping::DEFAULT_PLUGIN_API_KEY);
+        $tmpOrder->setShippingType(
+            $cart->getShippingType() ? $cart->getShippingType() : ShopgateShipping::DEFAULT_PLUGIN_API_KEY
+        );
         $tmpOrder->setShippingGroup($cart->getShippingGroup());
         $tmpOrder->setShippingInfos($cart->getShippingInfos());
 
@@ -607,7 +710,10 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
         $carrierItem = new Carrier($shippingModel->getCarrierIdByApiOrder($tmpOrder));
 
         if (!Validate::isLoadedObject($carrierItem)) {
-            $this->_addException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, sprintf('Invalid carrier ID #%s', $shippingModel->getCarrierIdByApiOrder($tmpOrder)));
+            $this->_addException(
+                ShopgateLibraryException::UNKNOWN_ERROR_CODE,
+                sprintf('Invalid carrier ID #%s', $shippingModel->getCarrierIdByApiOrder($tmpOrder))
+            );
         }
 
         $this->getPlugin()->getContext()->cart->id_carrier = $carrierItem->id;
@@ -616,6 +722,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
     /**
      * @param ShopgateAddress $address
+     *
      * @return AddressCore
      */
     protected function _createAddress(ShopgateAddress $address)
@@ -623,15 +730,15 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
         /** @var AddressCore $resultAddress */
         $resultAddress = new Address();
 
-        $resultAddress->id_country = $this->_getCountryIdByIsoCode($address->getCountry());
-        $resultAddress->alias = self::DEFAULT_ADDRESS_ALIAS;
-        $resultAddress->firstname = $address->getFirstName();
-        $resultAddress->lastname = $address->getLastName();
-        $resultAddress->address1 = $address->getStreet1();
-        $resultAddress->postcode = $address->getZipcode();
-        $resultAddress->city = $address->getCity();
-        $resultAddress->country = $address->getCountry();
-        $resultAddress->phone = $address->getPhone() ? $address->getPhone() : 1;
+        $resultAddress->id_country   = $this->_getCountryIdByIsoCode($address->getCountry());
+        $resultAddress->alias        = self::DEFAULT_ADDRESS_ALIAS;
+        $resultAddress->firstname    = $address->getFirstName();
+        $resultAddress->lastname     = $address->getLastName();
+        $resultAddress->address1     = $address->getStreet1();
+        $resultAddress->postcode     = $address->getZipcode();
+        $resultAddress->city         = $address->getCity();
+        $resultAddress->country      = $address->getCountry();
+        $resultAddress->phone        = $address->getPhone() ? $address->getPhone() : 1;
         $resultAddress->phone_mobile = $address->getMobile() ? $address->getMobile() : 1;
 
         /**
@@ -648,6 +755,7 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
 
     /**
      * @param $isoCode
+     *
      * @return mixed
      * @throws ShopgateLibraryException
      */
@@ -666,13 +774,17 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
             if ($stateId) {
                 return $stateId;
             } else {
-                $this->_addException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, ' invalid or empty iso code #'.$isoCode);
+                $this->_addException(
+                    ShopgateLibraryException::UNKNOWN_ERROR_CODE,
+                    ' invalid or empty iso code #' . $isoCode
+                );
             }
         }
     }
 
     /**
      * @param $isoCode
+     *
      * @return mixed
      * @throws ShopgateLibraryException
      */
@@ -681,21 +793,27 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
         if ($isoCode && $countryId = Country::getByIso($isoCode)) {
             return $countryId;
         } else {
-            $this->_addException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, ' invalid or empty iso code #'.$isoCode);
+            $this->_addException(
+                ShopgateLibraryException::UNKNOWN_ERROR_CODE,
+                ' invalid or empty iso code #' . $isoCode
+            );
         }
     }
 
     /**
      * add exception
      *
-     * @param int $errorCoded
+     * @param int  $errorCoded
      * @param bool $message
      * @param bool $writeLog
      *
      * @throws ShopgateLibraryException
      */
-    protected function _addException($errorCoded = ShopgateLibraryException::UNKNOWN_ERROR_CODE, $message = false, $writeLog = false)
-    {
+    protected function _addException(
+        $errorCoded = ShopgateLibraryException::UNKNOWN_ERROR_CODE,
+        $message = false,
+        $writeLog = false
+    ) {
         throw new ShopgateLibraryException($errorCoded, $message, true, $writeLog);
     }
 
@@ -734,8 +852,10 @@ class ShopgateItemsCartExportJson extends ShopgateItemsCart
             // In version 1.4.x.x this logic only deletes discounts defined to an user, but not the user itself.
             // It's needed to delete the user entry manually
             if (version_compare(_PS_VERSION_, '1.5.0', '<')) {
-                Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'customer`
-                WHERE `id_customer` = '.(int)($this->getPlugin()->getContext()->customer->id));
+                Db::getInstance()->Execute(
+                    'DELETE FROM `' . _DB_PREFIX_ . 'customer`
+                WHERE `id_customer` = ' . (int)($this->getPlugin()->getContext()->customer->id)
+                );
             }
         }
 

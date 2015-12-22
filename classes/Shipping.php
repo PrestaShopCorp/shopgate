@@ -312,7 +312,7 @@ class ShopgateShipping
 
                 $amountPaymentTaxIncl = $shopgateOrder->getAmountShopgatePayment();
 
-                if ($shopgateOrder->getPaymentTaxPercent() && $shopgateOrder->getPaymentTaxPercent() > 0) {
+                if ($shopgateOrder->getPaymentTaxPercent() > 0) {
                     $amountPaymentTaxIncl = $shopgateOrder->getAmountShopgatePayment() + (($shopgateOrder->getAmountShopgatePayment() / 100) * $shopgateOrder->getPaymentTaxPercent());
                 }
 
